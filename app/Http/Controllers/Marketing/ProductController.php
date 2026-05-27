@@ -69,7 +69,7 @@ class ProductController extends Controller
         ]);
         $product->categories()->sync($request->categories ?? []);
 
-        if ($request->has('components')) {
+        if (is_array($request->components)) {
             $this->syncComponents($product, $request->components);
         }
 
@@ -141,7 +141,7 @@ class ProductController extends Controller
         $product->categories()->sync($request->categories ?? []);
 
         $product->components()->delete(); // Remove old components
-        if ($request->has('components')) {
+        if (is_array($request->components)) {
             $this->syncComponents($product, $request->components);
         }
 
