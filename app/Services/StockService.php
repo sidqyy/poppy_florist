@@ -33,8 +33,12 @@ class StockService
                     throw new Exception("Stok tidak mencukupi untuk bahan: {$material->name}. Butuh: {$totalQtyNeeded}, Tersedia: {$material->stock}");
                 }
 
+                $stockBefore = $material->stock;
+
                 // Kurangi stok di master
                 $material->decrement('stock', $totalQtyNeeded);
+
+                $stockAfter = $material->fresh()->stock;
 
                 // Catat di mutasi
                 StockMutation::create([
@@ -42,6 +46,8 @@ class StockService
                     'user_id' => $userId,
                     'type' => 'out',
                     'qty' => $totalQtyNeeded,
+                    'stock_before' => $stockBefore,
+                    'stock_after' => $stockAfter,
                     'notes' => $notes
                 ]);
             }
@@ -60,7 +66,11 @@ class StockService
     {
         DB::beginTransaction();
         try {
+            $stockBefore = $material->stock;
+
             $material->increment('stock', $qty);
+
+            $stockAfter = $material->fresh()->stock;
 
             $expiresAt = null;
             if ($material->type === 'flower_fresh' && $material->freshness_days) {
@@ -72,6 +82,8 @@ class StockService
                 'user_id' => $userId,
                 'type' => 'in',
                 'qty' => $qty,
+                'stock_before' => $stockBefore,
+                'stock_after' => $stockAfter,
                 'notes' => $notes,
                 'expires_at' => $expiresAt
             ]);

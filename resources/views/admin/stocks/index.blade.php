@@ -49,6 +49,8 @@
                 <th class="py-3 px-4 font-medium">Bahan Baku</th>
                 <th class="py-3 px-4 font-medium">Tipe</th>
                 <th class="py-3 px-4 font-medium">Jumlah</th>
+                <th class="py-3 px-4 font-medium text-center">Stok Awal</th>
+                <th class="py-3 px-4 font-medium text-center">Stok Akhir</th>
                 <th class="py-3 px-4 font-medium">Keterangan</th>
                 <th class="py-3 px-4 font-medium">Oleh</th>
             </tr>
@@ -68,12 +70,18 @@
                 <td class="py-3 px-4 font-bold {{ $mut->type == 'in' ? 'text-green-600' : 'text-red-600' }}">
                     {{ $mut->type == 'in' ? '+' : '-' }}{{ $mut->qty }}
                 </td>
+                <td class="py-3 px-4 text-center font-medium text-gray-500">
+                    {{ $mut->stock_before ?? '-' }}
+                </td>
+                <td class="py-3 px-4 text-center font-bold text-gray-800">
+                    {{ $mut->stock_after ?? '-' }}
+                </td>
                 <td class="py-3 px-4 text-xs italic">{{ $mut->notes ?? '-' }}</td>
                 <td class="py-3 px-4">{{ $mut->user->name ?? 'System' }}</td>
             </tr>
             @empty
             <tr>
-                <td colspan="6" class="py-8 text-center text-gray-400">Belum ada riwayat mutasi stok.</td>
+                <td colspan="8" class="py-8 text-center text-gray-400">Belum ada riwayat mutasi stok.</td>
             </tr>
             @endforelse
         </tbody>

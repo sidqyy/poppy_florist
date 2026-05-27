@@ -422,12 +422,17 @@ class PosController extends Controller
     {
         $material = Material::find($materialId);
         if ($material) {
+            $stockBefore = $material->stock;
             $material->decrement('stock', $qty);
+            $stockAfter = $material->fresh()->stock;
+
             StockMutation::create([
                 'material_id' => $materialId,
                 'user_id' => auth()->id() ?? null,
                 'type' => 'out',
                 'qty' => $qty,
+                'stock_before' => $stockBefore,
+                'stock_after' => $stockAfter,
                 'notes' => "Penjualan via POS - Order: " . $orderNumber
             ]);
         }

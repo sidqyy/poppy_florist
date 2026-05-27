@@ -52,12 +52,17 @@ class StockController extends Controller
             }
             
             // Manual stock out
+            $stockBefore = $material->stock;
             $material->decrement('stock', $request->qty);
+            $stockAfter = $material->fresh()->stock;
+
             \App\Models\StockMutation::create([
                 'material_id' => $material->id,
                 'user_id' => auth()->id(),
                 'type' => 'out',
                 'qty' => $request->qty,
+                'stock_before' => $stockBefore,
+                'stock_after' => $stockAfter,
                 'notes' => $request->notes ?? 'Pengeluaran manual'
             ]);
         }
