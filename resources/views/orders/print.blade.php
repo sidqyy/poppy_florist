@@ -255,7 +255,8 @@
     </div>
     
     @if($copy === 1)
-        <div class="page-break"></div>
+        <!-- Jeda potong manual -->
+        <div class="border-dashed" style="margin: 35px 0;"></div>
     @endif
     @endfor
 
