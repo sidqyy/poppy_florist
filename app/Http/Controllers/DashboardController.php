@@ -49,10 +49,44 @@ class DashboardController extends Controller
         $monthlyOnlineRevenue = Order::where('source', 'online')->whereMonth('created_at', Carbon::now()->month)->sum('total_amount');
         $monthlyOfflineRevenue = Order::where('source', 'offline')->whereMonth('created_at', Carbon::now()->month)->sum('total_amount');
 
+        // Active rentals
+        $activeRentals = \App\Models\OrderItem::where('is_rented', true)
+            ->whereHas('order', function($q) {
+                $q->whereNotIn('status', ['cancelled']);
+            })->count();
+
+        // Rentals due today
+        $rentalsDueToday = \App\Models\OrderItem::where('is_rented', true)
+            ->whereHas('order', function($q) {
+                $q->whereNotIn('status', ['cancelled']);
+            })
+            ->get()
+            ->filter(function($item) {
+                if (!$item->order) return false;
+                $dueDate = Carbon::parse($item->order->created_at)->addDays($item->rental_duration)->toDateString();
+                return $dueDate === Carbon::today()->toDateString();
+            })
+            ->count();
+
+        // Payment methods this month
+        $paymentMethods = \App\Models\Payment::select('payment_method', DB::raw('count(*) as count'), DB::raw('sum(amount) as total'))
+            ->whereMonth('verified_at', Carbon::now()->month)
+            ->where('status', 'verified')
+            ->groupBy('payment_method')
+            ->get();
+
+        // Materials used today
+        $materialsUsedToday = \App\Models\OrderItemComponent::select('material_name', DB::raw('sum(qty) as total_qty'))
+            ->whereDate('created_at', $today)
+            ->groupBy('material_name')
+            ->orderBy('total_qty', 'desc')
+            ->get();
+
         return view('admin.dashboard', compact(
             'todayOrders', 'onlineOrders', 'offlineOrders', 'todayRevenue', 
             'processingOrders', 'pendingOrders', 'completedOrders', 'urgentOrders',
-            'lowStockMaterials', 'topProducts', 'monthlyOnlineRevenue', 'monthlyOfflineRevenue'
+            'lowStockMaterials', 'topProducts', 'monthlyOnlineRevenue', 'monthlyOfflineRevenue',
+            'activeRentals', 'rentalsDueToday', 'paymentMethods', 'materialsUsedToday'
         ));
     }
 

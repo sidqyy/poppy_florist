@@ -5,44 +5,64 @@
 
 @section('content')
 <!-- Overview Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="bg-white rounded-2xl p-6 shadow-md border-2 border-gray-200 flex items-center">
-        <div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-green-500 text-2xl mr-4 shrink-0">
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-5 mb-8">
+    <div class="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200 flex items-center">
+        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-500 text-xl mr-3 shrink-0">
             <i class="fa-solid fa-wallet"></i>
         </div>
         <div>
-            <p class="text-sm text-gray-500 font-medium mb-1">Pendapatan Hari Ini</p>
-            <h3 class="text-xl font-bold text-gray-800">Rp {{ number_format($todayRevenue, 0, ',', '.') }}</h3>
+            <p class="text-xs text-gray-500 font-medium mb-1 leading-tight">Pendapatan Hari Ini</p>
+            <h3 class="text-base font-bold text-gray-800">Rp {{ number_format($todayRevenue, 0, ',', '.') }}</h3>
         </div>
     </div>
     
-    <div class="bg-white rounded-2xl p-6 shadow-md border-2 border-gray-200 flex items-center">
-        <div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-2xl mr-4 shrink-0">
+    <div class="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200 flex items-center">
+        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-xl mr-3 shrink-0">
             <i class="fa-solid fa-shopping-bag"></i>
         </div>
         <div>
-            <p class="text-sm text-gray-500 font-medium mb-1">Total Pesanan</p>
-            <h3 class="text-2xl font-bold text-gray-800">{{ $todayOrders }}</h3>
+            <p class="text-xs text-gray-500 font-medium mb-1 leading-tight">Total Pesanan</p>
+            <h3 class="text-lg font-bold text-gray-800">{{ $todayOrders }}</h3>
         </div>
     </div>
     
-    <div class="bg-white rounded-2xl p-6 shadow-md border-2 border-gray-200 flex items-center">
-        <div class="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-500 text-2xl mr-4 shrink-0">
+    <div class="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200 flex items-center">
+        <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-500 text-xl mr-3 shrink-0">
             <i class="fa-solid fa-clock"></i>
         </div>
         <div>
-            <p class="text-sm text-gray-500 font-medium mb-1">Sedang Diproses</p>
-            <h3 class="text-2xl font-bold text-gray-800">{{ $processingOrders }}</h3>
+            <p class="text-xs text-gray-500 font-medium mb-1 leading-tight">Sedang Diproses</p>
+            <h3 class="text-lg font-bold text-gray-800">{{ $processingOrders }}</h3>
         </div>
     </div>
     
-    <div class="bg-white rounded-2xl p-6 shadow-md border-2 border-gray-200 flex items-center">
-        <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-2xl mr-4 shrink-0">
+    <div class="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200 flex items-center">
+        <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-xl mr-3 shrink-0">
             <i class="fa-solid fa-bolt"></i>
         </div>
         <div>
-            <p class="text-sm text-gray-500 font-medium mb-1">Pesanan Urgent</p>
-            <h3 class="text-2xl font-bold text-gray-800">{{ $urgentOrders }}</h3>
+            <p class="text-xs text-gray-500 font-medium mb-1 leading-tight">Pesanan Urgent</p>
+            <h3 class="text-lg font-bold text-gray-800">{{ $urgentOrders }}</h3>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200 flex items-center">
+        <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 text-xl mr-3 shrink-0">
+            <i class="fa-solid fa-arrows-spin"></i>
+        </div>
+        <div>
+            <p class="text-xs text-gray-500 font-medium mb-1 leading-tight">Aktif Disewa</p>
+            <h3 class="text-lg font-bold text-gray-800">{{ $activeRentals }}</h3>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-5 shadow-md border-2 border-gray-200 flex items-center">
+        <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 text-xl mr-3 shrink-0">
+            <i class="fa-solid fa-calendar-day"></i>
+        </div>
+        <div>
+            <p class="text-xs text-gray-500 font-medium mb-1 leading-tight">Kembali Hari Ini</p>
+            <h3 class="text-lg font-bold text-gray-800">{{ $rentalsDueToday }}</h3>
         </div>
     </div>
 </div>
@@ -95,6 +115,41 @@
                     <p class="text-xs text-green-500 mt-1 font-bold">{{ $onlineOrders }} Order Hari Ini</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Bahan Baku Terpakai Hari Ini -->
+        <div class="bg-white rounded-2xl shadow-md border-2 border-gray-200 p-6">
+            <h4 class="font-bold text-gray-800 mb-4 border-b pb-2"><i class="fa-solid fa-leaf text-green-500 mr-2"></i> Bahan Baku Terpakai Hari Ini</h4>
+            @if($materialsUsedToday->count() > 0)
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                @foreach($materialsUsedToday as $mat)
+                <div class="p-3 bg-gray-50 border border-gray-100 rounded-xl flex justify-between items-center">
+                    <span class="text-sm font-semibold text-gray-700">{{ $mat->material_name }}</span>
+                    <span class="px-2.5 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-lg border border-green-100">{{ $mat->total_qty }} pcs</span>
+                </div>
+                @endforeach
+            </div>
+            @else
+            <p class="text-gray-500 text-sm text-center py-4">Belum ada bahan baku yang terpakai hari ini.</p>
+            @endif
+        </div>
+
+        <!-- Distribusi Metode Pembayaran -->
+        <div class="bg-white rounded-2xl shadow-md border-2 border-gray-200 p-6">
+            <h4 class="font-bold text-gray-800 mb-4 border-b pb-2"><i class="fa-solid fa-money-bill-transfer text-blue-500 mr-2"></i> Distribusi Metode Pembayaran Bulan Ini</h4>
+            @if($paymentMethods->count() > 0)
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                @foreach($paymentMethods as $pay)
+                <div class="p-4 bg-blue-50/50 border border-blue-100 rounded-xl text-center">
+                    <span class="text-xs font-bold text-blue-500 uppercase tracking-wider block mb-1">{{ strtoupper($pay->payment_method) }}</span>
+                    <span class="text-lg font-extrabold text-gray-800 block">Rp {{ number_format($pay->total, 0, ',', '.') }}</span>
+                    <span class="text-xs text-gray-500 block mt-1 font-medium">{{ $pay->count }} Transaksi Terverifikasi</span>
+                </div>
+                @endforeach
+            </div>
+            @else
+            <p class="text-gray-500 text-sm text-center py-4">Belum ada transaksi terverifikasi bulan ini.</p>
+            @endif
         </div>
     </div>
 
