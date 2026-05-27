@@ -25,11 +25,19 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        // Bersihkan baris komponen kosong jika tidak diisi oleh user
+        if ($request->has('components')) {
+            $filtered = array_filter($request->components, function($item) {
+                return !empty($item['material_id']);
+            });
+            $request->merge(['components' => !empty($filtered) ? $filtered : null]);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'categories' => 'nullable|array',
             'categories.*' => 'exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240', // Diperbesar ke 10MB karena akan dikompres otomatis di backend
             'price_type' => 'required|in:fixed,range',
             'total_price' => 'required|numeric|min:0',
             'max_price' => 'nullable|required_if:price_type,range|numeric|min:0',
@@ -85,11 +93,19 @@ class ProductController extends Controller
     {
         $product = \App\Models\Product::findOrFail($id);
         
+        // Bersihkan baris komponen kosong jika tidak diisi oleh user
+        if ($request->has('components')) {
+            $filtered = array_filter($request->components, function($item) {
+                return !empty($item['material_id']);
+            });
+            $request->merge(['components' => !empty($filtered) ? $filtered : null]);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'categories' => 'nullable|array',
             'categories.*' => 'exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240', // Diperbesar ke 10MB karena akan dikompres otomatis di backend
             'price_type' => 'required|in:fixed,range',
             'total_price' => 'required|numeric|min:0',
             'max_price' => 'nullable|required_if:price_type,range|numeric|min:0',
