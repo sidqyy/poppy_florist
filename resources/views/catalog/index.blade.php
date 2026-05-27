@@ -46,21 +46,6 @@
     <input type="hidden" name="category_id" value="{{ request('category_id') }}">
     
     <span class="text-sm font-semibold text-gray-500 uppercase tracking-wider mr-2"><i class="fa-solid fa-filter mr-1"></i> Filter:</span>
-    
-    <div class="flex bg-gray-100 rounded-lg p-1">
-        <label class="cursor-pointer">
-            <input type="radio" name="availability" value="" class="hidden" onchange="document.getElementById('filterForm').submit()" {{ request('availability') == '' ? 'checked' : '' }}>
-            <div class="px-4 py-1.5 rounded-md text-sm font-medium {{ request('availability') == '' ? 'bg-white shadow text-florist-600' : 'text-gray-500 hover:text-gray-700' }}">Semua Status</div>
-        </label>
-        <label class="cursor-pointer">
-            <input type="radio" name="availability" value="ready" class="hidden" onchange="document.getElementById('filterForm').submit()" {{ request('availability') == 'ready' ? 'checked' : '' }}>
-            <div class="px-4 py-1.5 rounded-md text-sm font-medium {{ request('availability') == 'ready' ? 'bg-white shadow text-florist-600' : 'text-gray-500 hover:text-gray-700' }}">Ready Stock</div>
-        </label>
-        <label class="cursor-pointer">
-            <input type="radio" name="availability" value="preorder" class="hidden" onchange="document.getElementById('filterForm').submit()" {{ request('availability') == 'preorder' ? 'checked' : '' }}>
-            <div class="px-4 py-1.5 rounded-md text-sm font-medium {{ request('availability') == 'preorder' ? 'bg-white shadow text-florist-600' : 'text-gray-500 hover:text-gray-700' }}">Pre-Order</div>
-        </label>
-    </div>
 
     <div class="flex bg-gray-100 rounded-lg p-1">
         <label class="cursor-pointer">
@@ -95,20 +80,6 @@
                 <span class="px-3 py-1 bg-white/90 backdrop-blur rounded-full text-xs font-bold text-gray-700 shadow-sm border border-gray-200">
                     {{ $product->categories->first()->name ?? 'Umum' }}
                 </span>
-                
-                @if($product->availability == 'ready')
-                    <span class="px-3 py-1 bg-green-500/90 backdrop-blur rounded-full text-xs font-bold text-white shadow-sm">
-                        <i class="fa-solid fa-check-circle mr-1"></i> Ready
-                    </span>
-                @elseif($product->availability == 'preorder')
-                    <span class="px-3 py-1 bg-yellow-500/90 backdrop-blur rounded-full text-xs font-bold text-white shadow-sm">
-                        <i class="fa-solid fa-clock mr-1"></i> Pre-Order
-                    </span>
-                @else
-                    <span class="px-3 py-1 bg-purple-500/90 backdrop-blur rounded-full text-xs font-bold text-white shadow-sm">
-                        <i class="fa-solid fa-palette mr-1"></i> Custom
-                    </span>
-                @endif
             </div>
 
             <!-- Hover overlay -->
@@ -174,7 +145,6 @@
         <div class="p-8">
             <div class="flex items-center gap-3 mb-2">
                 <span id="modalCategory" class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">Kategori</span>
-                <span id="modalStatus" class="px-3 py-1 bg-florist-50 text-florist-600 text-xs font-bold rounded-full">STATUS</span>
             </div>
             
             <h2 id="modalTitle" class="text-3xl font-bold text-gray-800 mb-2">Nama Produk</h2>
@@ -202,7 +172,6 @@
             document.getElementById('modalTitle').textContent = template.querySelector('.product-data-title').textContent;
             document.getElementById('modalPrice').textContent = template.querySelector('.product-data-price').textContent;
             document.getElementById('modalDesc').textContent = template.querySelector('.product-data-desc').textContent;
-            document.getElementById('modalStatus').textContent = template.querySelector('.product-data-status').textContent;
             document.getElementById('modalCategory').textContent = template.querySelector('.product-data-category').textContent;
             document.getElementById('modalComponents').innerHTML = template.querySelector('.product-data-components').innerHTML;
             
