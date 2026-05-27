@@ -252,11 +252,6 @@
         </div>
         @endif
 
-        <div class="border-dashed"></div>
-        
-        <div class="text-center mt-2 mb-4" style="font-size: 10px; font-weight: bold; letter-spacing: 1px;">
-            *** {{ $copy === 1 ? 'DOKUMEN KASIR (ASLI)' : 'DOKUMEN PELANGGAN (SALINAN)' }} ***
-        </div>
     </div>
     
     @if($copy === 1)
