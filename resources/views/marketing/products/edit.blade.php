@@ -55,6 +55,14 @@
             </div>
             
             <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ketersediaan Produk</label>
+                <select name="availability" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none">
+                    <option value="preorder" {{ old('availability', $product->availability) == 'preorder' ? 'selected' : '' }}>Pre-Order</option>
+                    <option value="ready" {{ old('availability', $product->availability) == 'ready' ? 'selected' : '' }}>Ready Stock</option>
+                </select>
+            </div>
+            
+            <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Foto Produk</label>
                 <div class="mb-2" id="imagePreviewContainer">
                     @if($product->image)
