@@ -51,7 +51,7 @@
             <!-- Bunga & Bahan Eceran -->
             <a href="{{ route('pos.materials', ['type' => 'flower_fresh']) }}" class="group bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-orange-200 border-2 border-transparent hover:border-orange-500 transition-all touch-btn flex items-center gap-6">
                 <div class="w-24 h-24 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform shadow-sm">
-                    <i class="fa-solid fa-seedling text-5xl"></i>
+                    <i class="fa-solid fa-basket-shopping text-5xl"></i>
                 </div>
                 <div class="flex-1">
                     <h3 class="text-2xl font-extrabold text-gray-800 mb-2">Bunga & Bahan Eceran</h3>

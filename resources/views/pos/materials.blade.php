@@ -43,14 +43,14 @@
                     <div class="w-full h-full flex items-center justify-center text-gray-300 text-2xl">
                         @php
                             $icons = [
-                                'flower_fresh' => 'fa-leaf',
+                                'flower_fresh' => 'fa-spa',
                                 'flower_artificial' => 'fa-seedling',
                                 'wrapping' => 'fa-scroll',
                                 'ribbon' => 'fa-ribbon',
-                                'doll' => 'fa-snowman',
+                                'doll' => 'fa-face-smile',
                                 'greeting_card' => 'fa-envelope-open-text',
                                 'accessory' => 'fa-gem',
-                                'packaging' => 'fa-box',
+                                'packaging' => 'fa-box-open',
                             ];
                         @endphp
                         <i class="fa-solid {{ $icons[$type] ?? 'fa-box-open' }}"></i>
