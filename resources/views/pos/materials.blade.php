@@ -34,7 +34,11 @@
 
         <div class="flex flex-col gap-3">
             @foreach($materials as $material)
-            <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-3.5 flex items-center gap-4 hover:border-blue-300 transition-all">
+            @php
+                $cartKey = 'mat_' . $material->id;
+                $inCartQty = isset($cart[$cartKey]) ? $cart[$cartKey]['qty'] : 0;
+            @endphp
+            <div class="bg-white rounded-2xl shadow-sm border-2 {{ $inCartQty > 0 ? 'border-emerald-500 bg-emerald-50/10' : 'border-gray-200' }} p-3.5 flex items-center gap-4 hover:border-blue-300 transition-all">
                 <!-- Image or Leaf Icon Column -->
                 <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0 relative flex items-center justify-center shadow-sm border border-gray-100">
                     @if($material->image)
@@ -63,9 +67,14 @@
                 <div class="flex-1 min-w-0 text-left">
                     <div class="flex flex-wrap items-center gap-2.5 mb-1.5">
                         <h3 class="text-base font-bold text-gray-800 leading-tight truncate">{{ $material->name }}</h3>
-                        <span class="bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                        <span class="bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full text-xs font-bold shrink-0">
                             Stok: {{ $material->stock }} {{ $material->unit }}
                         </span>
+                        @if($inCartQty > 0)
+                        <span class="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full text-xs font-black shadow-sm flex items-center gap-1 shrink-0">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i> Terpilih: {{ $inCartQty }} {{ $material->unit }}
+                        </span>
+                        @endif
                     </div>
                     <p class="text-florist-500 font-extrabold text-lg">
                         Rp {{ number_format($material->price, 0, ',', '.') }}<span class="text-xs text-gray-400 font-medium">/{{ $material->unit }}</span>
@@ -78,9 +87,15 @@
                         @csrf
                         <input type="hidden" name="material_id" value="{{ $material->id }}">
                         @if($material->stock > 0)
-                        <button type="submit" class="touch-btn py-3 px-5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-xl flex items-center gap-2 text-sm transition-colors">
-                            <i class="fa-solid fa-cart-plus"></i> Tambah Eceran
-                        </button>
+                            @if($inCartQty > 0)
+                            <button type="submit" class="touch-btn py-3 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-2 text-sm transition-colors shadow-md shadow-emerald-100">
+                                <i class="fa-solid fa-cart-plus"></i> Tambah Lagi
+                            </button>
+                            @else
+                            <button type="submit" class="touch-btn py-3 px-5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-xl flex items-center gap-2 text-sm transition-colors">
+                                <i class="fa-solid fa-cart-plus"></i> Tambah Eceran
+                            </button>
+                            @endif
                         @else
                         <button disabled type="button" class="py-3 px-5 bg-gray-100 text-gray-400 font-bold rounded-xl flex items-center gap-2 text-sm cursor-not-allowed">
                             Stok Habis
