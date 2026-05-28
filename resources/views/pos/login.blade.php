@@ -200,7 +200,7 @@
                 fetch("{{ route('pos.logout') }}", {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('input[name="_csrf"]')?.value || '{{ csrf_token() }}',
+                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]')?.value || '{{ csrf_token() }}',
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 });

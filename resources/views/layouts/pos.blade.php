@@ -204,7 +204,7 @@
 
             const kioskExitTrigger = document.getElementById('kioskExitTrigger');
             if (kioskExitTrigger) {
-                kioskExitTrigger.addEventListener('click', function() {
+                kioskExitTrigger.addEventListener('pointerdown', function(e) {
                 clickCount++;
                 if (clickCount === 1) {
                     clickTimeout = setTimeout(() => {
@@ -225,7 +225,8 @@
                     }
                 }
             });
-        }
+            }
+        });
 
         @if(session('success'))
             Swal.fire({

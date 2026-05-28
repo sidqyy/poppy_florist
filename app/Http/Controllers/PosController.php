@@ -16,6 +16,23 @@ use Illuminate\Support\Facades\Auth;
 
 class PosController extends Controller
 {
+    public function login(Request $request)
+    {
+        $request->validate([
+            'florist_name' => 'required|string'
+        ]);
+
+        session(['pos_florist' => $request->florist_name]);
+        return redirect()->route('pos.index');
+    }
+
+    public function logout(Request $request)
+    {
+        $request->session()->forget('pos_florist');
+        $request->session()->forget('pos_cart');
+        return redirect()->route('pos.login');
+    }
+
     public function index()
     {
         return view('pos.index');

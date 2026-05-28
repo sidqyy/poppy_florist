@@ -41,19 +41,11 @@ Route::prefix('pos')->name('pos.')->group(function () {
     })->name('login');
     
     // Proses Pilih Florist
-    Route::post('/login', function (\Illuminate\Http\Request $request) {
-        $request->validate(['florist_name' => 'required|string']);
-        session()->put('pos_florist', $request->florist_name);
-        return redirect()->route('pos.index');
-    })->name('login.post');
+    Route::post('/login', [\App\Http\Controllers\PosController::class, 'login'])->name('login.post');
 
     // Proses Ganti Florist / Logout
-    Route::post('/logout', function () {
-        session()->forget('pos_florist');
-        return redirect()->route('pos.login');
-    })->name('logout');
+    Route::post('/logout', [\App\Http\Controllers\PosController::class, 'logout'])->name('logout');
 
-    // Rute POS Utama
     // Rute POS Utama
     Route::middleware([\App\Http\Middleware\CheckPosFlorist::class])->group(function () {
         Route::get('/', [\App\Http\Controllers\PosController::class, 'index'])->name('index');
@@ -114,23 +106,6 @@ Route::middleware('auth')->group(function () {
     
     // Dapur Florist (Kitchen)
     Route::get('/kitchen', [\App\Http\Controllers\OrderController::class, 'kitchen'])->name('kitchen.index');
-    
-    // API Polling untuk Notifikasi Dapur
-    Route::get('/api/check-new-orders', function (\Illuminate\Http\Request $request) {
-        $lastCheck = (int) $request->query('last_check', time() - 60);
-        $lastCheckTime = \Carbon\Carbon::createFromTimestamp($lastCheck);
-        
-        $hasNew = \App\Models\Order::where('status', 'pending')
-            ->where('created_at', '>', $lastCheckTime)
-            ->exists();
-            
-        $hasPending = \App\Models\Order::where('status', 'pending')->exists();
-            
-        return response()->json([
-            'has_new' => $hasNew,
-            'has_pending' => $hasPending
-        ]);
-    })->name('api.check-new-orders');
     
     // Order Revision / Histori
     Route::get('/orders/{id}/revision', [\App\Http\Controllers\OrderRevisionController::class, 'editComponents'])->name('orders.revision.edit');

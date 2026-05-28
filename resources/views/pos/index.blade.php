@@ -4,7 +4,7 @@
 <div class="h-full w-full bg-gray-50 flex items-center justify-center p-6">
     <div class="max-w-6xl w-full">
         <div class="text-center mb-12">
-            <h2 id="kioskExitTrigger" class="text-4xl font-extrabold text-gray-800 tracking-tight">Selamat Datang di Poppy Florist</h2>
+            <h2 id="kioskExitTrigger" class="text-4xl font-extrabold text-gray-800 tracking-tight select-none cursor-pointer" style="touch-action: manipulation; -webkit-user-select: none; user-select: none;">Selamat Datang di Poppy Florist</h2>
             <p class="text-xl text-gray-500 mt-2">Silakan pilih jenis transaksi yang akan Anda lakukan saat ini</p>
         </div>
 
