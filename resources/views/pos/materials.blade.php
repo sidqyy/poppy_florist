@@ -10,34 +10,44 @@
             <h2 class="text-3xl font-bold text-gray-800">{{ $title }}</h2>
         </div>
         
-        <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div class="flex flex-col gap-3">
             @foreach($materials as $material)
-            <div class="bg-white rounded-3xl shadow-md border-2 border-gray-200 overflow-hidden flex flex-col">
-                <div class="h-64 bg-gray-100 relative">
+            <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-3.5 flex items-center gap-4 hover:border-blue-300 transition-all">
+                <!-- Image or Leaf Icon Column -->
+                <div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0 relative flex items-center justify-center">
                     @if($material->image)
                     <img src="{{ Storage::url($material->image) }}" class="w-full h-full object-cover">
                     @else
-                    <div class="w-full h-full flex items-center justify-center text-gray-300">
-                        <i class="fa-solid fa-leaf text-6xl"></i>
+                    <div class="w-full h-full flex items-center justify-center text-gray-300 text-2xl">
+                        <i class="fa-solid {{ $type === 'flower_fresh' ? 'fa-leaf' : 'fa-seedling' }}"></i>
                     </div>
                     @endif
-                    <div class="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-blue-500 shadow-sm">
-                        Stok: {{ $material->stock }} {{ $material->unit }}
-                    </div>
                 </div>
-                <div class="p-5 flex-1 flex flex-col">
-                    <h3 class="text-xl font-bold text-gray-800 mb-1 leading-tight">{{ $material->name }}</h3>
-                    <p class="text-florist-500 font-extrabold text-2xl mb-4 mt-auto">Rp {{ number_format($material->price, 0, ',', '.') }}<span class="text-sm text-gray-400 font-medium">/{{ $material->unit }}</span></p>
-                    
-                    <form action="{{ route('pos.cart.add-material') }}" method="POST">
+
+                <!-- Info Column -->
+                <div class="flex-1 min-w-0 text-left">
+                    <div class="flex flex-wrap items-center gap-2.5 mb-1.5">
+                        <h3 class="text-base font-bold text-gray-800 leading-tight truncate">{{ $material->name }}</h3>
+                        <span class="bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                            Stok: {{ $material->stock }} {{ $material->unit }}
+                        </span>
+                    </div>
+                    <p class="text-florist-500 font-extrabold text-lg">
+                        Rp {{ number_format($material->price, 0, ',', '.') }}<span class="text-xs text-gray-400 font-medium">/{{ $material->unit }}</span>
+                    </p>
+                </div>
+
+                <!-- Action Button Column -->
+                <div class="shrink-0">
+                    <form action="{{ route('pos.cart.add-material') }}" method="POST" class="m-0">
                         @csrf
                         <input type="hidden" name="material_id" value="{{ $material->id }}">
                         @if($material->stock > 0)
-                        <button type="submit" class="touch-btn w-full py-4 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-2xl flex items-center justify-center gap-2 text-lg">
+                        <button type="submit" class="touch-btn py-3 px-5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-xl flex items-center gap-2 text-sm transition-colors">
                             <i class="fa-solid fa-cart-plus"></i> Tambah Eceran
                         </button>
                         @else
-                        <button disabled type="button" class="w-full py-4 bg-gray-100 text-gray-400 font-bold rounded-2xl flex items-center justify-center gap-2 text-lg cursor-not-allowed">
+                        <button disabled type="button" class="py-3 px-5 bg-gray-100 text-gray-400 font-bold rounded-xl flex items-center gap-2 text-sm cursor-not-allowed">
                             Stok Habis
                         </button>
                         @endif
