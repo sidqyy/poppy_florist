@@ -155,6 +155,46 @@ class PosController extends Controller
         return redirect()->back()->with('success', 'Bahan berhasil ditambahkan ke keranjang');
     }
 
+    public function addMultipleMaterialsToCart(Request $request)
+    {
+        $request->validate([
+            'materials' => 'required|array'
+        ]);
+
+        $cart = Session::get('pos_cart', []);
+        $addedCount = 0;
+
+        foreach ($request->materials as $matId => $qty) {
+            $qty = intval($qty);
+            if ($qty > 0) {
+                $material = Material::find($matId);
+                if ($material) {
+                    $cartKey = 'mat_' . $material->id;
+                    if (isset($cart[$cartKey])) {
+                        $cart[$cartKey]['qty'] += $qty;
+                    } else {
+                        $cart[$cartKey] = [
+                            "id" => $material->id,
+                            "type" => "material",
+                            "name" => $material->name . ' (Eceran)',
+                            "qty" => $qty,
+                            "price" => $material->price,
+                            "image" => $material->image
+                        ];
+                    }
+                    $addedCount += $qty;
+                }
+            }
+        }
+
+        if ($addedCount > 0) {
+            Session::put('pos_cart', $cart);
+            return redirect()->back()->with('success', $addedCount . ' barang eceran berhasil ditambahkan ke keranjang!');
+        }
+
+        return redirect()->back()->with('error', 'Pilih minimal satu barang dengan jumlah lebih dari 0!');
+    }
+
     public function addCustomToCart(Request $request)
     {
         $request->validate([

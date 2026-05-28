@@ -65,6 +65,7 @@ Route::prefix('pos')->name('pos.')->group(function () {
         Route::post('/cart/add', [\App\Http\Controllers\PosController::class, 'addToCart'])->name('cart.add');
         Route::post('/cart/add-material', [\App\Http\Controllers\PosController::class, 'addMaterialToCart'])->name('cart.add-material');
         Route::post('/cart/add-custom', [\App\Http\Controllers\PosController::class, 'addCustomToCart'])->name('cart.add-custom');
+        Route::post('/cart/add-multiple-materials', [\App\Http\Controllers\PosController::class, 'addMultipleMaterialsToCart'])->name('cart.add-multiple-materials');
         
         Route::post('/cart/update', [\App\Http\Controllers\PosController::class, 'updateCart'])->name('cart.update');
         Route::post('/cart/remove', [\App\Http\Controllers\PosController::class, 'removeFromCart'])->name('cart.remove');
