@@ -36,24 +36,25 @@
             @foreach($materials as $material)
             <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-3.5 flex items-center gap-4 hover:border-blue-300 transition-all">
                 <!-- Image or Leaf Icon Column -->
-                <div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0 relative flex items-center justify-center">
+                <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0 relative flex items-center justify-center shadow-sm border border-gray-100">
                     @if($material->image)
                     <img src="{{ Storage::url($material->image) }}" class="w-full h-full object-cover">
                     @else
-                    <div class="w-full h-full flex items-center justify-center text-gray-300 text-2xl">
-                        @php
-                            $icons = [
-                                'flower_fresh' => 'fa-spa',
-                                'flower_artificial' => 'fa-seedling',
-                                'wrapping' => 'fa-scroll',
-                                'ribbon' => 'fa-ribbon',
-                                'doll' => 'fa-face-smile',
-                                'greeting_card' => 'fa-envelope-open-text',
-                                'accessory' => 'fa-gem',
-                                'packaging' => 'fa-box-open',
-                            ];
-                        @endphp
-                        <i class="fa-solid {{ $icons[$type] ?? 'fa-box-open' }}"></i>
+                    @php
+                        $styleMap = [
+                            'flower_fresh' => ['icon' => 'fa-spa', 'bg' => 'bg-rose-50', 'text' => 'text-rose-500'],
+                            'flower_artificial' => ['icon' => 'fa-seedling', 'bg' => 'bg-teal-50', 'text' => 'text-teal-500'],
+                            'doll' => ['icon' => 'fa-face-smile', 'bg' => 'bg-purple-50', 'text' => 'text-purple-500'],
+                            'accessory' => ['icon' => 'fa-gem', 'bg' => 'bg-pink-50', 'text' => 'text-pink-500'],
+                            'packaging' => ['icon' => 'fa-box-open', 'bg' => 'bg-blue-50', 'text' => 'text-blue-500'],
+                            'wrapping' => ['icon' => 'fa-scroll', 'bg' => 'bg-amber-50', 'text' => 'text-amber-500'],
+                            'ribbon' => ['icon' => 'fa-ribbon', 'bg' => 'bg-red-50', 'text' => 'text-red-500'],
+                            'greeting_card' => ['icon' => 'fa-envelope-open-text', 'bg' => 'bg-indigo-50', 'text' => 'text-indigo-500'],
+                        ];
+                        $style = $styleMap[$type] ?? ['icon' => 'fa-box-open', 'bg' => 'bg-gray-50', 'text' => 'text-gray-400'];
+                    @endphp
+                    <div class="w-full h-full flex items-center justify-center {{ $style['bg'] }} {{ $style['text'] }} text-3xl">
+                        <i class="fa-solid {{ $style['icon'] }}"></i>
                     </div>
                     @endif
                 </div>
