@@ -34,12 +34,22 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
                         <label class="block text-sm font-bold text-gray-800 mb-1">Prefix / Sumber Pesanan</label>
-                        <select name="order_prefix" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none font-bold">
-                            <option value="PESW">PESW - Pesanan Web</option>
-                            <option value="PESM">PESM - Pesanan Marketing (Lebih dari 3 jam)</option>
-                            <option value="PJLM">PJLM - Pesanan Marketing Kilat (Kurang dari 3 jam)</option>
+                        <select name="order_prefix" id="order_prefix" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none font-bold" onchange="toggleManualOrderField()">
+                            <option value="PESW" {{ old('order_prefix') == 'PESW' ? 'selected' : '' }}>PESW - Pesanan Web</option>
+                            <option value="PESM" {{ old('order_prefix') == 'PESM' ? 'selected' : '' }}>PESM - Pesanan Marketing (Lebih dari 3 jam)</option>
+                            <option value="PJLM" {{ old('order_prefix') == 'PJLM' ? 'selected' : '' }}>PJLM - Pesanan Marketing Kilat (Kurang dari 3 jam)</option>
                         </select>
-                        <p class="text-xs text-gray-500 mt-1">Nomor urut (misal: 001, 002) akan otomatis dibuatkan oleh sistem di belakang Prefix ini.</p>
+                        <p class="text-xs text-gray-500 mt-1" id="prefix_hint">Nomor urut (misal: 001, 002) akan otomatis dibuatkan oleh sistem di belakang Prefix ini.</p>
+                    </div>
+                    <div class="md:col-span-2 hidden" id="manual_order_container">
+                        <label class="block text-sm font-bold text-gray-800 mb-1">Nomor Order Manual (dari Web) <span class="text-red-500">*</span></label>
+                        <div class="flex">
+                            <span class="inline-flex items-center px-4 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 font-bold">
+                                PESW-
+                            </span>
+                            <input type="text" name="manual_order_number" id="manual_order_number" value="{{ old('manual_order_number') }}" placeholder="Contoh: 12345" class="w-full px-4 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-florist-400 outline-none font-bold">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Masukkan nomor order unik dari website Anda (tanpa mengetik "PESW-").</p>
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-800 mb-1">Nama Pemesan <span class="text-red-500">*</span></label>
@@ -263,5 +273,27 @@
     function updateGrandTotal() {
         // For online order form, we don't display a live grand total right now because the product is just a dropdown.
     }
+
+    function toggleManualOrderField() {
+        const prefix = document.getElementById('order_prefix').value;
+        const container = document.getElementById('manual_order_container');
+        const input = document.getElementById('manual_order_number');
+        const hint = document.getElementById('prefix_hint');
+
+        if (prefix === 'PESW') {
+            container.classList.remove('hidden');
+            input.setAttribute('required', 'required');
+            hint.textContent = 'Nomor order akan disinkronkan menggunakan nomor manual yang diinput di bawah.';
+        } else {
+            container.classList.add('hidden');
+            input.removeAttribute('required');
+            hint.textContent = 'Nomor urut (misal: 001, 002) akan otomatis dibuatkan oleh sistem di belakang Prefix ini.';
+        }
+    }
+
+    // Jalankan saat pertama kali dibuka untuk mempertahankan state old value
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleManualOrderField();
+    });
 </script>
 @endsection

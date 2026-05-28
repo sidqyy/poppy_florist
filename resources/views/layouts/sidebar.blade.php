@@ -95,7 +95,7 @@
             </li>
             @endif
 
-            @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'asmen', 'it support']))
+            @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'asmen', 'it support', 'owner']))
             <li class="pt-5 pb-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Master Data & Stok</li>
             <li>
                 <a href="{{ route('marketing.products.index') }}" class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('marketing.products.*') ? 'bg-gradient-to-r from-pink-50 to-white border-l-4 border-pink-500 text-pink-600 font-bold' : 'text-gray-600 hover:bg-pink-50 hover:text-pink-600 border-l-4 border-transparent' }} rounded-r-xl transition-all">

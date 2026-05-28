@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
@@ -38,7 +40,7 @@ class OrderController extends Controller
         return view('orders.index', compact('orders'));
     }
 
-    public function checkout($product_id)
+    public function checkout(int $product_id)
     {
         $product = \App\Models\Product::with('components.material')->findOrFail($product_id);
         return view('orders.checkout', compact('product'));
@@ -62,7 +64,7 @@ class OrderController extends Controller
         DB::beginTransaction();
         try {
             // 1. Kurangi Stok
-            $stockService->reduceStockForProduct($product, 1, auth()->id());
+            $stockService->reduceStockForProduct($product, 1, Auth::id());
             
             // 2. Kalkulasi Promo
             $discount = floatval($request->discount ?? 0);
@@ -118,7 +120,7 @@ class OrderController extends Controller
                 'notes' => $request->notes,
                 'is_urgent' => $request->has('is_urgent'),
                 'estimated_time' => $request->estimated_time,
-                'user_id' => auth()->id()
+                'user_id' => Auth::id()
             ]);
 
             // 4. Record Promo Usage
@@ -195,6 +197,7 @@ class OrderController extends Controller
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'nullable|string|max:255',
             'order_prefix' => 'required|in:PESW,PESM,PJLM,PES,PJL',
+            'manual_order_number' => 'nullable|required_if:order_prefix,PESW|string|max:255',
             'recipient_name' => 'nullable|string|max:255',
             'recipient_phone' => 'nullable|string|max:255',
             'delivery_method' => 'required|in:pickup,delivery',
@@ -220,14 +223,31 @@ class OrderController extends Controller
         }
 
         $prefix = $request->order_prefix;
-        $latestOrder = \App\Models\Order::where('order_number', 'LIKE', $prefix . '%')->orderBy('id', 'desc')->lockForUpdate()->first();
-        if ($latestOrder) {
-            $lastNumber = intval(substr($latestOrder->order_number, strlen($prefix)));
-            $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        if ($prefix === 'PESW') {
+            $manualNumber = trim($request->manual_order_number);
+            // Bersihkan jika user tidak sengaja menyertakan prefix PESW- atau PESW
+            if (str_starts_with(strtoupper($manualNumber), 'PESW-')) {
+                $manualNumber = substr($manualNumber, 5);
+            } elseif (str_starts_with(strtoupper($manualNumber), 'PESW')) {
+                $manualNumber = substr($manualNumber, 4);
+            }
+            $orderNumber = 'PESW' . $manualNumber;
+
+            // Validasi Keunikan
+            $exists = \App\Models\Order::where('order_number', $orderNumber)->exists();
+            if ($exists) {
+                return back()->withErrors(['manual_order_number' => 'Nomor order manual "' . $orderNumber . '" sudah terpakai di sistem. Harap gunakan nomor order unik dari website Anda.'])->withInput();
+            }
         } else {
-            $newNumber = '001';
+            $latestOrder = \App\Models\Order::where('order_number', 'LIKE', $prefix . '%')->orderBy('id', 'desc')->lockForUpdate()->first();
+            if ($latestOrder) {
+                $lastNumber = intval(substr($latestOrder->order_number, strlen($prefix)));
+                $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+            } else {
+                $newNumber = '001';
+            }
+            $orderNumber = $prefix . $newNumber;
         }
-        $orderNumber = $prefix . $newNumber;
             
         $deliveryFee = floatval($request->delivery_fee ?? 0);
         $totalAmount = floatval($request->total_price ?? 0) + $deliveryFee;
@@ -278,7 +298,7 @@ class OrderController extends Controller
             'source' => 'online',
             'is_urgent' => $request->has('is_urgent'),
             'estimated_time' => $request->estimated_time,
-            'user_id' => auth()->id()
+            'user_id' => Auth::id()
         ]);
 
         $initialPayment = floatval($request->initial_payment ?? 0);
@@ -289,7 +309,7 @@ class OrderController extends Controller
         if ($initialPayment > 0) {
             \App\Models\Payment::create([
                 'order_id' => $order->id,
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'amount' => $initialPayment,
                 'payment_method' => 'Online/Transfer',
                 'proof_image' => $paymentProofPath,
@@ -324,7 +344,7 @@ class OrderController extends Controller
         return view('orders.kitchen', compact('orders'));
     }
 
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, int $id)
     {
         $order = \App\Models\Order::findOrFail($id);
         
@@ -354,7 +374,7 @@ class OrderController extends Controller
         if ($oldStatus != $request->status) {
             \App\Models\OrderHistory::create([
                 'order_id' => $order->id,
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'old_status' => $oldStatus,
                 'new_status' => $request->status,
                 'action' => 'status_update',
@@ -365,7 +385,7 @@ class OrderController extends Controller
         return back()->with('success', 'Status pesanan diperbarui menjadi: ' . $request->status);
     }
 
-    public function updateFloristNotes(Request $request, $id)
+    public function updateFloristNotes(Request $request, int $id)
     {
         $order = \App\Models\Order::findOrFail($id);
         
@@ -417,7 +437,7 @@ class OrderController extends Controller
         ]);
     }
 
-    public function printReceipt($id)
+    public function printReceipt(int $id)
     {
         $order = \App\Models\Order::with(['items.components', 'payments.verifier', 'user'])->findOrFail($id);
         

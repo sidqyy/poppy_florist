@@ -6,32 +6,86 @@
         
         @if(!request('category'))
             <!-- Occasion Selection Screen -->
-            <div class="max-w-6xl mx-auto w-full pt-10 relative">
+            <div class="max-w-7xl mx-auto w-full pt-10 relative">
                 <a href="{{ route('pos.index') }}" class="absolute top-0 left-0 w-12 h-12 bg-white border border-gray-200 hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-600 transition-colors shadow-sm touch-btn" title="Kembali ke Menu Utama">
                     <i class="fa-solid fa-arrow-left"></i>
                 </a>
                 
                 <div class="text-center mb-12">
-                    <h2 class="text-4xl font-extrabold text-gray-800 tracking-tight">Pilih Occasion</h2>
-                    <p class="text-xl text-gray-500 mt-2">Pilih kategori acara untuk melihat daftar buket yang tersedia</p>
+                    <h2 class="text-5xl font-black text-gray-800 tracking-tight">Pilih Occasion</h2>
+                    <p class="text-xl text-gray-400 mt-3 font-medium">Pilih kategori acara untuk melihat daftar buket yang tersedia</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     @foreach($categories as $category)
                     @if(in_array($category->slug, ['bunga-artificial', 'custom-order'])) @continue @endif
                     @php
                         $catName = strtolower($category->name);
-                        $icon = 'fa-spa';
+                        
+                        // Map category to premium dynamic icon & beautiful color palette
+                        if (str_contains($catName, 'birthday') || str_contains($catName, 'ulang tahun')) {
+                            $icon = 'fa-cake-candles';
+                            $iconColor = 'text-amber-600';
+                            $bgColor = 'bg-gradient-to-tr from-amber-50 to-orange-100/50';
+                            $borderColor = 'group-hover:border-amber-400 group-hover:shadow-amber-100';
+                        } elseif (str_contains($catName, 'graduation') || str_contains($catName, 'wisuda') || str_contains($catName, 'kelulusan')) {
+                            $icon = 'fa-graduation-cap';
+                            $iconColor = 'text-indigo-600';
+                            $bgColor = 'bg-gradient-to-tr from-indigo-50 to-blue-100/50';
+                            $borderColor = 'group-hover:border-indigo-400 group-hover:shadow-indigo-100';
+                        } elseif (str_contains($catName, 'anniversary')) {
+                            $icon = 'fa-gift';
+                            $iconColor = 'text-rose-600';
+                            $bgColor = 'bg-gradient-to-tr from-rose-50 to-pink-100/50';
+                            $borderColor = 'group-hover:border-rose-400 group-hover:shadow-rose-100';
+                        } elseif (str_contains($catName, 'rest in peace') || str_contains($catName, 'duka cita') || str_contains($catName, 'condolence')) {
+                            $icon = 'fa-dove';
+                            $iconColor = 'text-slate-600';
+                            $bgColor = 'bg-gradient-to-tr from-slate-100 to-slate-200/50';
+                            $borderColor = 'group-hover:border-slate-400 group-hover:shadow-slate-100';
+                        } elseif (str_contains($catName, 'wedding') || str_contains($catName, 'pernikahan')) {
+                            $icon = 'fa-heart';
+                            $iconColor = 'text-pink-600';
+                            $bgColor = 'bg-gradient-to-tr from-pink-50 to-rose-100/50';
+                            $borderColor = 'group-hover:border-pink-400 group-hover:shadow-pink-100';
+                        } elseif (str_contains($catName, 'opening') || str_contains($catName, 'pembukaan') || str_contains($catName, 'grand')) {
+                            $icon = 'fa-store';
+                            $iconColor = 'text-emerald-600';
+                            $bgColor = 'bg-gradient-to-tr from-emerald-50 to-teal-100/50';
+                            $borderColor = 'group-hover:border-emerald-400 group-hover:shadow-emerald-100';
+                        } elseif (str_contains($catName, 'formal') || str_contains($catName, 'ceremony') || str_contains($catName, 'resmi')) {
+                            $icon = 'fa-award';
+                            $iconColor = 'text-sky-600';
+                            $bgColor = 'bg-gradient-to-tr from-sky-50 to-blue-100/50';
+                            $borderColor = 'group-hover:border-sky-400 group-hover:shadow-sky-100';
+                        } elseif (str_contains($catName, 'baby') || str_contains($catName, 'melahirkan')) {
+                            $icon = 'fa-baby';
+                            $iconColor = 'text-cyan-600';
+                            $bgColor = 'bg-gradient-to-tr from-cyan-50 to-sky-100/50';
+                            $borderColor = 'group-hover:border-cyan-400 group-hover:shadow-cyan-100';
+                        } elseif (str_contains($catName, 'get well') || str_contains($catName, 'sembuh') || str_contains($catName, 'gws')) {
+                            $icon = 'fa-heart-pulse';
+                            $iconColor = 'text-teal-600';
+                            $bgColor = 'bg-gradient-to-tr from-teal-50 to-emerald-100/50';
+                            $borderColor = 'group-hover:border-teal-400 group-hover:shadow-teal-100';
+                        } else {
+                            $icon = 'fa-spa';
+                            $iconColor = 'text-pink-600';
+                            $bgColor = 'bg-gradient-to-tr from-pink-50 to-rose-100/50';
+                            $borderColor = 'group-hover:border-pink-400 group-hover:shadow-pink-100';
+                        }
                     @endphp
-                    <a href="{{ route('pos.catalog', ['category' => $category->id]) }}" class="group bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-florist-200 border-2 border-transparent hover:border-florist-500 transition-all touch-btn flex items-center gap-6">
-                        <div class="w-24 h-24 bg-florist-100 rounded-2xl flex items-center justify-center text-florist-600 group-hover:scale-110 transition-transform shadow-sm">
+                    <a href="{{ route('pos.catalog', ['category' => $category->id]) }}" class="group bg-white p-8 rounded-[32px] shadow-lg hover:shadow-xl border-2 border-transparent {{ $borderColor }} transition-all duration-300 touch-btn flex items-center gap-6">
+                        <div class="w-28 h-28 {{ $bgColor }} rounded-2xl flex items-center justify-center {{ $iconColor }} group-hover:scale-110 transition-transform duration-300 shadow-sm shrink-0">
                             <i class="fa-solid {{ $icon }} text-5xl"></i>
                         </div>
-                        <div class="flex-1">
-                            <h3 class="text-2xl font-extrabold text-gray-800 mb-2">{{ $category->name }}</h3>
-                            <p class="text-gray-500 text-lg leading-snug">Lihat koleksi buket untuk acara {{ $category->name }}</p>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-2xl font-black text-gray-800 mb-1.5 group-hover:text-pink-500 transition-colors">{{ $category->name }}</h3>
+                            <p class="text-gray-400 text-sm leading-snug">Koleksi buket spesial {{ $category->name }}</p>
                         </div>
-                        <i class="fa-solid fa-chevron-right text-gray-300 text-2xl group-hover:text-florist-500 transition-colors"></i>
+                        <div class="w-14 h-14 rounded-full bg-gray-50 group-hover:bg-pink-50 flex items-center justify-center text-gray-400 group-hover:text-pink-500 transition-colors shrink-0">
+                            <i class="fa-solid fa-chevron-right text-sm"></i>
+                        </div>
                     </a>
                     @endforeach
                 </div>

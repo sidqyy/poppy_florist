@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class StockController extends Controller
 {
@@ -45,7 +46,7 @@ class StockController extends Controller
         $material = \App\Models\Material::findOrFail($request->material_id);
         
         if ($request->type === 'in') {
-            $stockService->addStock($material, $request->qty, auth()->id(), $request->notes ?? 'Restock manual');
+            $stockService->addStock($material, $request->qty, Auth::id(), $request->notes ?? 'Restock manual');
         } else {
             if ($material->stock < $request->qty) {
                 return back()->withErrors(['qty' => 'Stok tidak mencukupi untuk dikeluarkan.']);
@@ -58,7 +59,7 @@ class StockController extends Controller
 
             \App\Models\StockMutation::create([
                 'material_id' => $material->id,
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'type' => 'out',
                 'qty' => $request->qty,
                 'stock_before' => $stockBefore,

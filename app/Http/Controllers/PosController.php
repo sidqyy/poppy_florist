@@ -12,6 +12,7 @@ use App\Models\StockMutation;
 use App\Models\OrderItemComponent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
 
 class PosController extends Controller
 {
@@ -331,7 +332,7 @@ class PosController extends Controller
                 'status' => 'processing', 
                 'source' => 'offline', 
                 'handled_by' => session('pos_florist'),
-                'user_id' => auth()->id() ?? null
+                'user_id' => Auth::id() ?? null
             ]);
 
             foreach ($cart as $key => $item) {
@@ -401,7 +402,7 @@ class PosController extends Controller
                 'payment_method' => $request->payment_method,
                 'amount' => $request->amount_tendered,  
                 'status' => 'verified',
-                'verified_by' => auth()->id() ?? null,
+                'verified_by' => Auth::id() ?? null,
                 'verified_at' => now(),
                 'reference_number' => 'POS-' . time()
             ]);
@@ -428,7 +429,7 @@ class PosController extends Controller
 
             StockMutation::create([
                 'material_id' => $materialId,
-                'user_id' => auth()->id() ?? null,
+                'user_id' => Auth::id() ?? null,
                 'type' => 'out',
                 'qty' => $qty,
                 'stock_before' => $stockBefore,

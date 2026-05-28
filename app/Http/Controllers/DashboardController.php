@@ -109,8 +109,15 @@ class DashboardController extends Controller
         // Low Stock Materials (Threshold: < 10)
         $lowStockMaterials = Material::where('stock', '<', 10)->get();
 
+        // 3 pesanan aktif terdekat yang harus dirangkai
+        $nextOrders = Order::whereIn('status', ['pending', 'processing'])
+            ->orderBy('is_urgent', 'desc')
+            ->orderBy('scheduled_at', 'asc')
+            ->take(3)
+            ->get();
+
         return view('florist.dashboard', compact(
-            'pendingOrders', 'processingOrders', 'urgentOrders', 'readyOrders', 'lowStockMaterials'
+            'pendingOrders', 'processingOrders', 'urgentOrders', 'readyOrders', 'lowStockMaterials', 'nextOrders'
         ));
     }
 

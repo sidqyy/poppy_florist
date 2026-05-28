@@ -524,4 +524,82 @@
             initPosMap();
         }
     };
+
+    // AJAX Cart Interceptor (No Refresh)
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (!form) return;
+        
+        const action = form.getAttribute('action') || '';
+        if (action.includes('/pos/cart/add') || 
+            action.includes('/pos/cart/update') || 
+            action.includes('/pos/cart/remove') || 
+            action.includes('/pos/cart/clear')) {
+            
+            e.preventDefault();
+            
+            // Siapkan FormData dan masukkan nilai tombol submitter (seperti tombol + / - qty)
+            const formData = new FormData(form);
+            const submitter = e.submitter;
+            if (submitter && submitter.name) {
+                formData.append(submitter.name, submitter.value);
+            }
+            
+            sendCartAjax(form.action, formData, action.includes('/pos/cart/add'));
+        }
+    });
+
+    function sendCartAjax(url, formData, isAddAction = false) {
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(htmlText => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            
+            // Swap isi panel keranjang (Sidebar)
+            const newCartPanel = doc.getElementById('cartPanel');
+            const currentCartPanel = document.getElementById('cartPanel');
+            if (newCartPanel && currentCartPanel) {
+                currentCartPanel.innerHTML = newCartPanel.innerHTML;
+            }
+            
+            // Swap isi tombol keranjang melayang (Floating Button)
+            const newFloatBtn = doc.querySelector('.cart-float-btn');
+            const currentFloatBtn = document.querySelector('.cart-float-btn');
+            if (newFloatBtn && currentFloatBtn) {
+                currentFloatBtn.innerHTML = newFloatBtn.innerHTML;
+            }
+
+            // Selaraskan base total untuk kalkulasi tagihan di modal pembayaran
+            const newBaseTotalInput = doc.getElementById('base_total');
+            if (newBaseTotalInput) {
+                document.getElementById('base_total').value = newBaseTotalInput.value;
+                if (typeof updatePosGrandTotal === 'function') {
+                    updatePosGrandTotal();
+                }
+            }
+
+            // Tampilkan notifikasi sukses jika menambah barang baru
+            if (isAddAction && typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Berhasil dimasukkan ke keranjang',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: true
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Gagal memperbarui keranjang:', error);
+        });
+    }
 </script>

@@ -186,7 +186,13 @@
 
             document.querySelectorAll('form').forEach(form => {
                 if (!form.target) {
-                    form.addEventListener('submit', function() {
+                    form.addEventListener('submit', function(e) {
+                        // Jangan fade-out jika ini adalah form keranjang belanja (AJAX)
+                        const action = form.getAttribute('action') || '';
+                        if (action.includes('/pos/cart/')) {
+                            return;
+                        }
+
                         const mainContent = document.querySelector('main');
                         if (mainContent) {
                             mainContent.classList.remove('fade-in');
