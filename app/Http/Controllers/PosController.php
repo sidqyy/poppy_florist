@@ -47,7 +47,19 @@ class PosController extends Controller
     public function materials(string $type)
     {
         $materials = Material::where('type', $type)->where('is_active', true)->get();
-        $title = $type == 'flower_fresh' ? 'Bunga Batangan' : 'Bunga Artificial';
+        
+        $titles = [
+            'flower_fresh' => 'Bunga Segar Eceran',
+            'flower_artificial' => 'Bunga Artificial Eceran',
+            'wrapping' => 'Kertas Wrapping',
+            'ribbon' => 'Pita (Ribbon)',
+            'doll' => 'Boneka',
+            'greeting_card' => 'Kartu Ucapan',
+            'accessory' => 'Aksesoris',
+            'packaging' => 'Packaging',
+        ];
+        
+        $title = $titles[$type] ?? 'Bahan Eceran';
         
         $data = $this->getCartData();
         $data['materials'] = $materials;

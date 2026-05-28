@@ -10,6 +10,28 @@
             <h2 class="text-3xl font-bold text-gray-800">{{ $title }}</h2>
         </div>
         
+        <!-- Tabs Navigation -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 border-b border-gray-200 scrollbar-none" style="-ms-overflow-style: none; scrollbar-width: none;">
+            @php
+                $tabs = [
+                    'flower_fresh' => ['label' => '🌸 Bunga Segar', 'color' => 'orange'],
+                    'flower_artificial' => ['label' => '🌿 Bunga Artificial', 'color' => 'teal'],
+                    'doll' => ['label' => '🧸 Boneka', 'color' => 'purple'],
+                    'accessory' => ['label' => '🎀 Aksesoris', 'color' => 'pink'],
+                    'packaging' => ['label' => '📦 Packaging', 'color' => 'blue'],
+                    'wrapping' => ['label' => '📜 Wrapping', 'color' => 'amber'],
+                    'ribbon' => ['label' => '🎗️ Pita', 'color' => 'rose'],
+                    'greeting_card' => ['label' => '✉️ Kartu Ucapan', 'color' => 'indigo'],
+                ];
+            @endphp
+            @foreach($tabs as $tabKey => $tabData)
+                <a href="{{ route('pos.materials', ['type' => $tabKey]) }}" 
+                   class="px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm shrink-0 touch-btn {{ $type === $tabKey ? 'bg-blue-600 text-white shadow-blue-200 shadow-md' : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200' }}">
+                    {{ $tabData['label'] }}
+                </a>
+            @endforeach
+        </div>
+
         <div class="flex flex-col gap-3">
             @foreach($materials as $material)
             <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-3.5 flex items-center gap-4 hover:border-blue-300 transition-all">
@@ -19,7 +41,19 @@
                     <img src="{{ Storage::url($material->image) }}" class="w-full h-full object-cover">
                     @else
                     <div class="w-full h-full flex items-center justify-center text-gray-300 text-2xl">
-                        <i class="fa-solid {{ $type === 'flower_fresh' ? 'fa-leaf' : 'fa-seedling' }}"></i>
+                        @php
+                            $icons = [
+                                'flower_fresh' => 'fa-leaf',
+                                'flower_artificial' => 'fa-seedling',
+                                'wrapping' => 'fa-scroll',
+                                'ribbon' => 'fa-ribbon',
+                                'doll' => 'fa-snowman',
+                                'greeting_card' => 'fa-envelope-open-text',
+                                'accessory' => 'fa-gem',
+                                'packaging' => 'fa-box',
+                            ];
+                        @endphp
+                        <i class="fa-solid {{ $icons[$type] ?? 'fa-box-open' }}"></i>
                     </div>
                     @endif
                 </div>
