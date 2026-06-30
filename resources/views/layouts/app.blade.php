@@ -98,10 +98,100 @@
     
     @if(auth()->check() && auth()->user()->role === 'florist')
     <script>
+        // Register service worker for background notifications
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
+        }
+
+        // Request notification permission on first click
+        document.addEventListener('click', function requestNotifPermission() {
+            document.removeEventListener('click', requestNotifPermission);
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            // Subscribe to push notifications
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                subscribeToPush();
+            }
+        }, { once: true });
+
+        async function subscribeToPush() {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array('{{ env('VAPID_PUBLIC_KEY') }}')
+                });
+                
+                await fetch('/api/push/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        endpoint: subscription.endpoint,
+                        public_key: arrayBufferToBase64(subscription.getKey('p256dh')),
+                        auth_token: arrayBufferToBase64(subscription.getKey('auth'))
+                    })
+                });
+            } catch (err) {
+                console.log('Push subscription failed:', err);
+            }
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+        }
+
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        // BroadcastChannel for cross-tab sync
+        const orderChannel = new BroadcastChannel('orders');
+        orderChannel.addEventListener('message', (event) => {
+            if (event.data.type === 'play_notification') {
+                playBellSound();
+                setTimeout(() => { playVoiceNotification(); }, 1000);
+            }
+        });
+
+        // Helper for browser notifications
+        window.showBrowserNotification = function(title, body) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, { body, icon: '/favicon.ico', tag: 'new-order' });
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
-            // Record the time this page was loaded as the baseline for checking new orders
+            // Unlock audio on first user interaction (required for autoplay policy)
+            let audioUnlocked = false;
+            const unlockAudio = () => {
+                if (!audioUnlocked) {
+                    audioUnlocked = true;
+                    document.removeEventListener('click', unlockAudio);
+                    document.removeEventListener('keydown', unlockAudio);
+                    document.removeEventListener('touchstart', unlockAudio);
+                }
+            };
+            document.addEventListener('click', unlockAudio);
+            document.addEventListener('keydown', unlockAudio);
+            document.addEventListener('touchstart', unlockAudio);
+
+// Record the time this page was loaded as the baseline for checking new orders
             let lastCheckTime = Math.floor(Date.now() / 1000);
             let checkInterval = 10000; // 10 seconds
+            let lastNotifiedCount = 0;
 
             function playBellSound() {
                 try {
@@ -117,15 +207,15 @@
                         osc.frequency.value = frequency;
                         
                         gain.gain.setValueAtTime(0, startTime);
-                        gain.gain.linearRampToValueAtTime(0.2, startTime + 0.05); // Attack lebih lembut
-                        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration); // Menghilang perlahan
+                        gain.gain.linearRampToValueAtTime(0.2, startTime + 0.05);
+                        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
                         
                         osc.connect(gain);
                         gain.connect(ctx.destination);
                         osc.start(startTime);
                         osc.stop(startTime + duration);
                     };
-
+                    
                     // Suara modern glassy / chime (Nada C6 - E6 - G6 berurutan cepat)
                     playNote(1046.50, ctx.currentTime, 1.0, 'sine');
                     playNote(1318.51, ctx.currentTime + 0.1, 1.2, 'sine');
@@ -137,36 +227,60 @@
 
             function playVoiceNotification() {
                 try {
-                    // Menggunakan file MP3 lokal yang sudah di-download dari Google TTS
-                    // Ini menjamin 100% suara bisa diputar di HP tanpa terblokir sistem keamanan
                     const url = "{{ asset('pesanan_masuk.mp3') }}";
                     const audio = new Audio(url);
                     audio.play().catch(e => console.log("Audio autoplay blocked", e));
-                } catch (e) {
+} catch (e) {
                     console.error("Failed to play TTS audio", e);
                 }
             }
+            
+            // Expose for manual trigger from kitchen page
+            window.playKitchenNotification = function() {
+                playBellSound();
+                playVoiceNotification();
+            }
 
-            setInterval(() => {
-                fetch(`/api/check-new-orders?last_check=${lastCheckTime}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.has_pending) {
-                            playBellSound();
-                            setTimeout(() => { playVoiceNotification(); }, 1000);
-                        }
+// Check both new orders AND pending count to play repeat notifications
+            let lastPendingCount = 0;
+            let notificationPlayed = false;
+            
+            async function checkAndNotify() {
+                try {
+                    const response = await fetch(`/api/check-new-orders?last_check=${lastCheckTime}`);
+                    const data = await response.json();
+                    
+                    console.log('Check orders API response:', data);
+                    
+                    // Play for new orders
+                    if (data.has_new) {
+                        playBellSound();
+                        setTimeout(() => { playVoiceNotification(); }, 1000);
+                        lastCheckTime = Math.floor(Date.now() / 1000);
+                    }
+                    
+                    // Play once after user interaction if there are pending orders
+                    if (data.pending > 0 && !notificationPlayed && audioUnlocked) {
+                        playBellSound();
+                        setTimeout(() => { playVoiceNotification(); }, 1000);
+                        notificationPlayed = true;
+                    }
+                    
+                    // Reset when no pending orders
+                    if (data.pending === 0) {
+                        notificationPlayed = false;
+                    }
+                    
+                    // Sync pending count via BroadcastChannel
+                    if (data.pending > 0) {
+                        orderChannel.postMessage({type: 'pending_update', count: data.pending});
+                    }
+                } catch (error) {
+                    console.error('Error checking new orders:', error);
+                }
+            }
 
-                        if (data.has_new) {
-                            lastCheckTime = Math.floor(Date.now() / 1000);
-                            // Only auto-reload if we are actually on the kitchen or orders page
-                            const path = window.location.pathname;
-                            if (path.includes('/kitchen') || path.includes('/orders')) {
-                                setTimeout(() => { window.location.reload(); }, 4000);
-                            }
-                        }
-                    })
-                    .catch(error => console.error('Error checking new orders:', error));
-            }, checkInterval);
+            setInterval(checkAndNotify, checkInterval);
         });
     </script>
     @endif

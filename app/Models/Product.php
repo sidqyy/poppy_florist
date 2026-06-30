@@ -25,4 +25,8 @@ class Product extends Model
         }
         return 'Rp ' . number_format($this->total_price, 0, ',', '.');
     }
+    public function sizes()
+{
+    return $this->hasMany(ProductSize::class);
+}
 }

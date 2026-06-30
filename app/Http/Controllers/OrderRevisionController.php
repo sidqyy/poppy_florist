@@ -26,8 +26,26 @@ class OrderRevisionController extends Controller
         
         \Illuminate\Support\Facades\DB::beginTransaction();
         try {
-            // 1. Kurangi stok material baru
-            $stockService->deductStockForOrderComponent($material->id, $request->qty, auth()->id());
+            // 1. Kurangi stok material baru JIKA order sedang dikerjakan
+            $deductedStates = ['processing', 'ready', 'completed'];
+            if (in_array($order->status, $deductedStates)) {
+                if ($material->stock < $request->qty) {
+                    throw new \Exception("Stok tidak mencukupi. Tersedia: {$material->stock}");
+                }
+                $stockBefore = $material->stock;
+                $material->decrement('stock', $request->qty);
+                $stockAfter = $material->fresh()->stock;
+                
+                \App\Models\StockMutation::create([
+                    'material_id' => $material->id,
+                    'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                    'type' => 'out',
+                    'qty' => $request->qty,
+                    'stock_before' => $stockBefore,
+                    'stock_after' => $stockAfter,
+                    'notes' => 'Penambahan komponen (Revisi) untuk pesanan ' . $order->order_number
+                ]);
+            }
 
             // 2. Tambahkan ke snapshot order_item_components
             $orderItem = $order->items->first(); // Menggunakan order_item pertama sebagai induk (biasanya custom bucket 1 item)
@@ -39,6 +57,7 @@ class OrderRevisionController extends Controller
 
             \App\Models\OrderItemComponent::create([
                 'order_item_id' => $orderItem->id,
+                'material_id' => $material->id,
                 'material_name' => $material->name,
                 'qty' => $request->qty,
                 'unit_price' => $material->price,
@@ -57,7 +76,7 @@ class OrderRevisionController extends Controller
             // 4. Log histori
             \App\Models\OrderHistory::create([
                 'order_id' => $order->id,
-                'user_id' => auth()->id(),
+                'user_id' => \Illuminate\Support\Facades\Auth::id(),
                 'old_status' => $order->status,
                 'new_status' => $order->status,
                 'action' => 'revision',
@@ -79,8 +98,26 @@ class OrderRevisionController extends Controller
         
         \Illuminate\Support\Facades\DB::beginTransaction();
         try {
-            // 1. Kembalikan stok material
-            $stockService->returnStockForOrderComponent($component->material_name, $component->qty, auth()->id());
+            // 1. Kembalikan stok material JIKA order sedang dikerjakan
+            $deductedStates = ['processing', 'ready', 'completed'];
+            if (in_array($order->status, $deductedStates) && $component->material_id) {
+                $material = \App\Models\Material::find($component->material_id);
+                if ($material) {
+                    $stockBefore = $material->stock;
+                    $material->increment('stock', $component->qty);
+                    $stockAfter = $material->fresh()->stock;
+                    
+                    \App\Models\StockMutation::create([
+                        'material_id' => $material->id,
+                        'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                        'type' => 'in',
+                        'qty' => $component->qty,
+                        'stock_before' => $stockBefore,
+                        'stock_after' => $stockAfter,
+                        'notes' => 'Penghapusan komponen (Revisi) dari pesanan ' . $order->order_number
+                    ]);
+                }
+            }
 
             $subtotal = $component->subtotal;
             $materialName = $component->material_name;
@@ -103,7 +140,7 @@ class OrderRevisionController extends Controller
             $notes = $request->input('notes', 'Penghapusan komponen');
             \App\Models\OrderHistory::create([
                 'order_id' => $order->id,
-                'user_id' => auth()->id(),
+                'user_id' => \Illuminate\Support\Facades\Auth::id(),
                 'old_status' => $order->status,
                 'new_status' => $order->status,
                 'action' => 'revision',

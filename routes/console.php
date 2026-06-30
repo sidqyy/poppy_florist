@@ -11,3 +11,4 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('db:backup')->dailyAt('21:30');
 Schedule::command('sync:run')->everyFiveMinutes();
+Schedule::command('orders:auto-complete')->hourly();

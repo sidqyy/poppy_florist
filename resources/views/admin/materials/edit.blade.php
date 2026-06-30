@@ -60,8 +60,21 @@
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Harga Dasar (Rp) <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Harga Dasar / Modal (Rp) <span class="text-red-500">*</span></label>
                 <input type="number" name="price" value="{{ old('price', $material->price) }}" required min="0" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-florist-500 focus:ring-florist-500">
+                <p class="text-xs text-gray-500 mt-1">Harga modal atau harga dasar bahan.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Harga Batangan (Rp)</label>
+                <input type="number" name="price_stem" value="{{ old('price_stem', $material->price_stem ?? 0) }}" min="0" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-florist-500 focus:ring-florist-500" placeholder="Contoh: 8000">
+                <p class="text-xs text-gray-500 mt-1">Dipakai jika bahan dijual satuan/batangan.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Harga Rangkaian (Rp)</label>
+                <input type="number" name="price_arrangement" value="{{ old('price_arrangement', $material->price_arrangement ?? 0) }}" min="0" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-florist-500 focus:ring-florist-500" placeholder="Contoh: 15000">
+                <p class="text-xs text-gray-500 mt-1">Dipakai jika bahan masuk ke rangkaian/custom bucket.</p>
             </div>
             
             <div id="minStockGroup">

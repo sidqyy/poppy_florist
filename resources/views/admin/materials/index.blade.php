@@ -45,6 +45,8 @@
                 <th class="py-3 px-4 font-medium">Nama Bahan</th>
                 <th class="py-3 px-4 font-medium">Satuan</th>
                 <th class="py-3 px-4 font-medium">Harga Dasar</th>
+                <th class="py-3 px-4 font-medium">Harga Batangan</th>
+                <th class="py-3 px-4 font-medium">Harga Rangkaian</th>
                 <th class="py-3 px-4 font-medium">Stok</th>
                 <th class="py-3 px-4 font-medium">Status</th>
                 <th class="py-3 px-4 font-medium text-right">Aksi</th>
@@ -55,7 +57,15 @@
             <tr class="hover:bg-gray-50">
                 <td class="py-3 px-4 font-medium text-gray-800">{{ $material->name }}</td>
                 <td class="py-3 px-4 capitalize">{{ $material->unit }}</td>
-                <td class="py-3 px-4 font-semibold text-florist-600">{{ $material->formatted_price }}</td>
+                <td class="py-3 px-4 font-semibold text-florist-600">
+                    {{ $material->formatted_price }}
+                </td>
+                <td class="py-3 px-4 font-semibold text-blue-600">
+                    Rp {{ number_format($material->price_stem ?? 0, 0, ',', '.') }}
+                </td>
+                <td class="py-3 px-4 font-semibold text-purple-600">
+                    Rp {{ number_format($material->price_arrangement ?? 0, 0, ',', '.') }}
+                </td>
                 <td class="py-3 px-4">
                     <span class="px-2 py-1 rounded text-xs font-semibold {{ $material->stock > 10 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
                         {{ $material->stock }}
@@ -78,7 +88,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="6" class="py-8 text-center text-gray-400">Belum ada data bahan baku untuk kategori ini.</td>
+                <td colspan="8" class="py-8 text-center text-gray-400">Belum ada data bahan baku untuk kategori ini.</td>
             </tr>
             @endforelse
         </tbody>

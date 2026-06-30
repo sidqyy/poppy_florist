@@ -10,15 +10,15 @@
         <p class="text-gray-500 text-sm mt-1">Dibuat pada {{ $order->created_at->format('d/m/Y H:i') }} oleh {{ $order->user->name ?? 'System' }}</p>
     </div>
     <div class="flex gap-2">
-        @if($order->payment_status == 'paid')
-        <a href="{{ route('orders.print', $order->id) }}" target="_blank" class="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-            <i class="fa-solid fa-print mr-2"></i> Cetak Struk
-        </a>
-        @else
-        <div class="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-400 rounded-lg cursor-not-allowed shadow-sm" title="Nota hanya bisa dicetak jika pesanan sudah LUNAS">
-            <i class="fa-solid fa-lock mr-2"></i> Cetak Dikunci
-        </div>
-        @endif
+@if(in_array($order->payment_status, ['paid', 'paid_qris', 'paid_tf']))
+<a href="{{ route('orders.print', $order->id) }}" target="_blank" class="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+    <i class="fa-solid fa-print mr-2"></i> Cetak Struk
+</a>
+@else
+<div class="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-400 rounded-lg cursor-not-allowed shadow-sm" title="Nota hanya bisa dicetak jika pesanan sudah LUNAS">
+    <i class="fa-solid fa-lock mr-2"></i> Cetak Dikunci
+</div>
+@endif
         <a href="{{ route('orders.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
             Kembali
         </a>
@@ -52,15 +52,24 @@
                     <span class="px-3 py-1 bg-green-50 text-green-600 rounded-full font-bold border border-green-200">Selesai</span>
                 @endif
             </div>
-            <div>
+            <div class="flex flex-col gap-2 items-end">
                 <span class="text-xs font-bold text-gray-400 uppercase block mb-1">Pembayaran</span>
-                @if($order->payment_status == 'paid')
-                    <span class="px-3 py-1 bg-green-50 text-green-600 rounded-full font-bold"><i class="fa-solid fa-check-double mr-1"></i> LUNAS</span>
-                @elseif($order->payment_status == 'dp')
-                    <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full font-bold">DP (Belum Lunas)</span>
-                @else
-                    <span class="px-3 py-1 bg-red-50 text-red-600 rounded-full font-bold">BELUM BAYAR</span>
-                @endif
+               @if(in_array($order->payment_status, ['paid', 'paid_qris', 'paid_tf']))
+    <span class="px-3 py-1 bg-green-50 text-green-600 rounded-full font-bold">
+        <i class="fa-solid fa-check-double mr-1"></i>
+        @if($order->payment_status == 'paid_qris')
+            LUNAS QRIS
+        @elseif($order->payment_status == 'paid_tf')
+            LUNAS TF
+        @else
+            LUNAS
+        @endif
+    </span>
+@elseif($order->payment_status == 'dp')
+    <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full font-bold">DP</span>
+@else
+    <span class="px-3 py-1 bg-red-50 text-red-600 rounded-full font-bold">BELUM BAYAR</span>
+@endif
             </div>
         </div>
 
@@ -341,7 +350,126 @@
     <!-- Sidebar Info -->
     <!-- Sidebar Info -->
     <div class="space-y-6">
-        
+@php
+    $verifiedPayment = $order->payments()
+        ->where('status', 'verified')
+        ->latest()
+        ->first();
+
+    $paymentStatusText = 'BELUM BAYAR';
+
+    if ($order->payment_status == 'paid_qris') {
+
+        $paymentStatusText = 'LUNAS QRIS';
+
+    } elseif ($order->payment_status == 'paid_tf') {
+
+        $paymentStatusText = 'LUNAS TF';
+
+    } elseif ($order->payment_status == 'paid') {
+
+        $paymentStatusText = 'LUNAS';
+
+    } elseif ($order->payment_status == 'dp') {
+
+        $paymentStatusText = 'DP';
+    }
+
+    $lineSummary = "PESANAN MARKETING\n\n";
+    $lineSummary .= "Nama pemesan : " . ($order->customer_name ?? '-') . "\n";
+    $lineSummary .= "No. HP pemesan : " . ($order->customer_phone ?? '-') . "\n";
+
+    if (!empty($order->recipient_name)) {
+        $lineSummary .= "Nama penerima : " . $order->recipient_name . "\n";
+    }
+
+    if (!empty($order->recipient_phone)) {
+        $lineSummary .= "No. HP penerima : " . $order->recipient_phone . "\n";
+    }
+
+    $lineSummary .= "hari/tanggal : ";
+
+    if ($order->scheduled_at) {
+        $lineSummary .= \Carbon\Carbon::parse($order->scheduled_at)
+            ->locale('id')
+            ->translatedFormat('l, d F Y');
+    } else {
+        $lineSummary .= "-";
+    }
+
+    $lineSummary .= "\n";
+
+    $lineSummary .= "Diambil/Diantar (beserta waktu): ";
+
+    if ($order->delivery_method == 'pickup') {
+        $lineSummary .= "diambil ";
+    } else {
+        $lineSummary .= "diantar ";
+    }
+
+    $lineSummary .= $order->scheduled_at
+        ? \Carbon\Carbon::parse($order->scheduled_at)->format('H.i')
+        : '-';
+
+    $lineSummary .= "\n";
+    $lineSummary .= "No. HP : " . ($order->customer_phone ?? '-') . "\n";
+
+    if ($order->delivery_method == 'delivery') {
+        $lineSummary .= "Alamat Pengiriman :\n";
+        $lineSummary .= ($order->delivery_address ?? '-') . "\n";
+    } else {
+        $lineSummary .= "Metode : Ambil di Toko\n";
+    }
+
+    $lineSummary .= "\n\n";
+    $lineSummary .= "Rincian :\n";
+
+    foreach ($order->items as $item) {
+
+        if ($item->components && $item->components->count()) {
+
+            foreach ($item->components as $comp) {
+
+                $lineSummary .= $comp->qty . ' ' . $comp->material_name;
+
+                if (!empty($comp->color)) {
+                    $lineSummary .= ' (' . $comp->color . ')';
+                }
+
+                $lineSummary .= "\n";
+            }
+
+        } else {
+
+            $lineSummary .= $item->qty . ' ' . $item->product_name . "\n";
+        }
+    }
+
+    $lineSummary .= "\n";
+    $lineSummary .= "Total : Rp. "
+        . number_format($order->total_amount, 0, ',', '.')
+        . " (" . $paymentStatusText . ")";
+@endphp
+
+<div class="bg-white p-6 rounded-2xl shadow-md border-2 border-green-200">
+    <h4 class="font-bold text-green-700 mb-4 border-b pb-2">
+        <i class="fa-brands fa-line mr-2"></i>
+        Ringkasan LINE Marketing
+    </h4>
+
+    <textarea
+        id="lineSummaryText"
+        readonly
+        class="w-full h-72 p-3 border border-green-200 rounded-xl text-sm font-mono bg-green-50 resize-none">{{ $lineSummary }}</textarea>
+
+    <button
+        type="button"
+        onclick="copyLineSummary()"
+        class="mt-3 w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-xl font-bold">
+        <i class="fa-solid fa-copy mr-2"></i>
+        Copy Ringkasan
+    </button>
+</div>
         @if(auth()->check() && auth()->user()->role !== 'florist' && !empty($order->customer_phone) && isset($waLinks))
         <!-- Action WA Notification -->
         <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl shadow-sm text-white">
@@ -395,6 +523,29 @@
                     <i class="fa-brands fa-whatsapp mr-1"></i> WA Manual
                 </a>
                 @endif
+                @if($order->recipient_name)
+<hr class="my-4">
+
+<div class="mb-3">
+    <span class="block text-xs font-bold text-gray-400 uppercase mb-1">
+        Nama Penerima
+    </span>
+    <p class="font-medium text-gray-800">
+        {{ $order->recipient_name }}
+    </p>
+</div>
+@endif
+
+@if($order->recipient_phone)
+<div>
+    <span class="block text-xs font-bold text-gray-400 uppercase mb-1">
+        WhatsApp Penerima
+    </span>
+    <p class="font-medium text-gray-800">
+        {{ $order->recipient_phone }}
+    </p>
+</div>
+@endif
             </div>
         </div>
 
@@ -502,28 +653,122 @@
 </div>
 
 <script>
-    // Toggle Wajib Bukti Pembayaran
     document.addEventListener('DOMContentLoaded', function() {
         const paymentMethodSelect = document.querySelector('select[name="payment_method"]');
         const proofImageInput = document.getElementById('proof_image');
         const proofReqMark = document.getElementById('proof_req_mark');
         const proofOptMark = document.getElementById('proof_opt_mark');
 
-        if(paymentMethodSelect && proofImageInput) {
+        if (paymentMethodSelect && proofImageInput) {
             paymentMethodSelect.addEventListener('change', function() {
                 if (this.value === 'Tunai / Cash') {
                     proofImageInput.required = false;
-                    if(proofReqMark) proofReqMark.classList.add('hidden');
-                    if(proofOptMark) proofOptMark.textContent = '(Opsional)';
+                    if (proofReqMark) proofReqMark.classList.add('hidden');
+                    if (proofOptMark) proofOptMark.textContent = '(Opsional)';
                 } else {
                     proofImageInput.required = true;
-                    if(proofReqMark) proofReqMark.classList.remove('hidden');
-                    if(proofOptMark) proofOptMark.textContent = '(Wajib)';
+                    if (proofReqMark) proofReqMark.classList.remove('hidden');
+                    if (proofOptMark) proofOptMark.textContent = '(Wajib)';
                 }
             });
-            // trigger on load
+
             paymentMethodSelect.dispatchEvent(new Event('change'));
         }
     });
+
+    function triggerFloristNotification(orderId) {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+
+            if (AudioContext) {
+                const ctx = new AudioContext();
+
+                const playNote = (frequency, startTime, duration, type = 'sine') => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = type;
+                    osc.frequency.value = frequency;
+
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(startTime);
+                    osc.stop(startTime + duration);
+                };
+
+                playNote(1046.50, ctx.currentTime, 1.0, 'sine');
+                playNote(1318.51, ctx.currentTime + 0.1, 1.2, 'sine');
+                playNote(1567.98, ctx.currentTime + 0.2, 1.8, 'sine');
+            }
+
+            const audio = new Audio("/pesanan_masuk.mp3");
+            audio.play().catch(() => {});
+        } catch (e) {}
+    }
+
+    function copyLineSummary() {
+        const textarea = document.getElementById('lineSummaryText');
+
+        if (!textarea) {
+            return;
+        }
+
+        textarea.removeAttribute('readonly');
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+
+        let copied = false;
+
+        try {
+            copied = document.execCommand('copy');
+        } catch (e) {
+            copied = false;
+        }
+
+        textarea.setAttribute('readonly', true);
+
+        if (copied) {
+            showCopyNotif('Ringkasan berhasil disalin');
+        } else {
+            showCopyNotif('Gagal menyalin ringkasan');
+        }
+    }
+
+    function showCopyNotif(message) {
+        let notif = document.getElementById('copyNotif');
+
+        if (!notif) {
+            notif = document.createElement('div');
+            notif.id = 'copyNotif';
+            notif.style.position = 'fixed';
+            notif.style.top = '20px';
+            notif.style.right = '20px';
+            notif.style.zIndex = '9999';
+            notif.style.background = '#22c55e';
+            notif.style.color = '#ffffff';
+            notif.style.padding = '12px 18px';
+            notif.style.borderRadius = '12px';
+            notif.style.fontWeight = '700';
+            notif.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
+            notif.style.transition = 'all 0.3s ease';
+
+            document.body.appendChild(notif);
+        }
+
+        notif.textContent = message;
+        notif.style.opacity = '1';
+        notif.style.transform = 'translateY(0)';
+
+        setTimeout(() => {
+            notif.style.opacity = '0';
+            notif.style.transform = 'translateY(-10px)';
+        }, 1500);
+    }
 </script>
 @endsection

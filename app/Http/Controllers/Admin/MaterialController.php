@@ -29,12 +29,17 @@ class MaterialController extends Controller
             'type' => 'required|in:flower_fresh,flower_artificial,wrapping,ribbon,doll,greeting_card,accessory,packaging,service',
             'unit' => 'required|string|max:50',
             'price' => 'required|numeric|min:0',
+            'price_stem' => 'nullable|numeric|min:0',
+            'price_arrangement' => 'nullable|numeric|min:0',
             'stock' => 'nullable|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'is_active' => 'boolean'
         ]);
 
         $validated['is_active'] = $request->has('is_active');
+
+        $validated['price_stem'] = $request->price_stem ?? 0;
+        $validated['price_arrangement'] = $request->price_arrangement ?? 0;
         
         if ($validated['type'] === 'service') {
             $validated['stock'] = 999999;
@@ -67,12 +72,17 @@ class MaterialController extends Controller
             'type' => 'required|in:flower_fresh,flower_artificial,wrapping,ribbon,doll,greeting_card,accessory,packaging,service',
             'unit' => 'required|string|max:50',
             'price' => 'required|numeric|min:0',
+            'price_stem' => 'nullable|numeric|min:0',
+            'price_arrangement' => 'nullable|numeric|min:0',
             'stock' => 'nullable|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'is_active' => 'boolean'
         ]);
 
         $validated['is_active'] = $request->has('is_active');
+
+        $validated['price_stem'] = $request->price_stem ?? 0;
+        $validated['price_arrangement'] = $request->price_arrangement ?? 0;
         
         if ($validated['type'] === 'service') {
             $validated['stock'] = 999999;
@@ -84,6 +94,7 @@ class MaterialController extends Controller
             if ($material->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($material->image)) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($material->image);
             }
+
             $validated['image'] = $request->file('image')->store('materials', 'public');
         }
 
@@ -100,6 +111,7 @@ class MaterialController extends Controller
         
         try {
             $material->delete();
+
             return redirect()->route('admin.materials.index', ['type' => $type])
                 ->with('success', 'Bahan baku berhasil dihapus.');
         } catch (\Illuminate\Database\QueryException $e) {
@@ -107,6 +119,7 @@ class MaterialController extends Controller
                 return redirect()->route('admin.materials.index', ['type' => $type])
                     ->with('error', 'Gagal menghapus! Bahan baku ini sedang digunakan sebagai komponen pada salah satu produk.');
             }
+
             return redirect()->route('admin.materials.index', ['type' => $type])
                 ->with('error', 'Terjadi kesalahan saat menghapus data.');
         }

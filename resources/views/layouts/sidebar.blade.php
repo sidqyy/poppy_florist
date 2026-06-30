@@ -123,6 +123,14 @@
                 </a>
             </li>
             <li>
+                <a href="{{ route('admin.arrangement-services.index') }}" class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('admin.arrangement-services.*') ? 'bg-gradient-to-r from-pink-50 to-white border-l-4 border-pink-500 text-pink-600 font-bold' : 'text-gray-600 hover:bg-pink-50 hover:text-pink-600 border-l-4 border-transparent' }} rounded-r-xl transition-all">
+                    <div class="w-8 h-8 rounded-lg {{ request()->routeIs('admin.arrangement-services.*') ? 'bg-pink-100' : 'bg-gray-50' }} flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-hands-holding-heart {{ request()->routeIs('admin.arrangement-services.*') ? 'text-pink-600' : 'text-purple-500' }}"></i>
+                    </div>
+                    <span>Jasa Rangkai</span>
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('admin.stocks.index') }}" class="flex items-center gap-3 px-4 py-3 {{ request()->routeIs('admin.stocks.*') ? 'bg-gradient-to-r from-pink-50 to-white border-l-4 border-pink-500 text-pink-600 font-bold' : 'text-gray-600 hover:bg-pink-50 hover:text-pink-600 border-l-4 border-transparent' }} rounded-r-xl transition-all">
                     <div class="w-8 h-8 rounded-lg {{ request()->routeIs('admin.stocks.*') ? 'bg-pink-100' : 'bg-gray-50' }} flex items-center justify-center transition-colors">
                         <i class="fa-solid fa-boxes-stacked {{ request()->routeIs('admin.stocks.*') ? 'text-pink-600' : 'text-sky-400' }}"></i>

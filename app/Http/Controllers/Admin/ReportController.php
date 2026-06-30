@@ -29,8 +29,8 @@ class ReportController extends Controller
         $totalDiscount = (clone $baseQuery)->sum('discount');
 
         // 2. Statistik Online vs Offline
-        $onlineOrders = (clone $baseQuery)->where('order_number', 'LIKE', 'ONL-%')->count();
-        $offlineOrders = (clone $baseQuery)->where('order_number', 'LIKE', 'ORD-%')->count();
+        $onlineOrders = (clone $baseQuery)->where('source', 'online')->count();
+        $offlineOrders = (clone $baseQuery)->where('source', 'offline')->count();
 
         // 3. Statistik Pengiriman
         $deliveryCount = (clone $baseQuery)->where('delivery_method', 'delivery')->count();

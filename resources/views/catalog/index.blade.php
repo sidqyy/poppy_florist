@@ -11,7 +11,6 @@
             <p class="text-florist-50 text-lg mb-6">Temukan racikan bucket terbaik untuk momen spesial pelanggan.</p>
             
             <form action="{{ route('catalog.index') }}" method="GET" class="flex flex-col md:flex-row gap-4 max-w-4xl">
-                <!-- Search -->
                 <div class="flex-1 relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <i class="fa-solid fa-search text-gray-400"></i>
@@ -19,7 +18,6 @@
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama bucket..." class="w-full pl-11 pr-4 py-3 rounded-xl text-gray-800 focus:ring-4 focus:ring-white/50 outline-none border-0 shadow-inner">
                 </div>
                 
-                <!-- Category Filter -->
                 <select name="category_id" class="px-4 py-3 rounded-xl text-gray-800 border-0 shadow-inner outline-none md:w-48">
                     <option value="">Semua Kategori</option>
                     @foreach($categories as $cat)
@@ -33,14 +31,12 @@
             </form>
         </div>
         
-        <!-- Decorative bg elements -->
         <div class="absolute -right-10 -bottom-10 opacity-20">
             <i class="fa-solid fa-leaf text-9xl"></i>
         </div>
     </div>
 </div>
 
-<!-- Additional Filters (Pills) -->
 <form action="{{ route('catalog.index') }}" method="GET" id="filterForm" class="mb-8 flex flex-wrap gap-4 items-center bg-white p-4 rounded-xl shadow-md border-2 border-gray-200">
     <input type="hidden" name="search" value="{{ request('search') }}">
     <input type="hidden" name="category_id" value="{{ request('category_id') }}">
@@ -63,11 +59,10 @@
     </div>
 </form>
 
-<!-- Grid Katalog -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     @forelse($products as $product)
-    <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border-2 border-gray-200 shadow-md group cursor-pointer" onclick="openDetailModal({{ $product->id }})">
-        <!-- Image Area -->
+    <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border-2 border-gray-200 shadow-md group cursor-pointer product-card"
+         data-product-id="{{ $product->id }}">
         <div class="aspect-square bg-gray-50 relative overflow-hidden flex items-center justify-center">
             @if($product->image)
                 <img src="{{ asset('storage/'.$product->image) }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -75,14 +70,12 @@
                 <i class="fa-solid fa-camera text-4xl text-gray-300"></i>
             @endif
             
-            <!-- Badges -->
             <div class="absolute top-3 left-3 flex flex-col gap-2">
                 <span class="px-3 py-1 bg-white/90 backdrop-blur rounded-full text-xs font-bold text-gray-700 shadow-sm border border-gray-200">
                     {{ $product->categories->first()->name ?? 'Umum' }}
                 </span>
             </div>
 
-            <!-- Hover overlay -->
             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <span class="px-4 py-2 bg-white rounded-lg text-florist-600 font-bold transform translate-y-4 group-hover:translate-y-0 transition-transform">
                     Lihat Detail
@@ -90,7 +83,6 @@
             </div>
         </div>
         
-        <!-- Content Area -->
         <div class="p-5">
             <h3 class="text-lg font-bold text-gray-800 mb-1 truncate group-hover:text-florist-600 transition-colors">{{ $product->name }}</h3>
             <p class="text-xs text-gray-500 mb-4 line-clamp-2 min-h-[2rem]">{{ $product->description ?? 'Bucket spesial yang dirangkai dengan sepenuh hati.' }}</p>
@@ -104,7 +96,6 @@
         </div>
     </div>
 
-    <!-- Hidden Data for Modal -->
     <template id="product-data-{{ $product->id }}">
         <div class="product-data-title">{{ $product->name }}</div>
         <div class="product-data-price">{{ $product->formatted_price }}</div>
@@ -115,12 +106,12 @@
             @foreach($product->components as $comp)
                 <li class="py-2 flex justify-between items-center text-sm">
                     <div>
-                        <span class="font-medium text-gray-800">{{ $comp->material->name }}</span>
+                        <span class="font-medium text-gray-800">{{ $comp->material->name ?? 'Material tidak ditemukan' }}</span>
                         @if($comp->notes)
                             <span class="text-xs text-gray-500 block">Catatan: {{ $comp->notes }}</span>
                         @endif
                     </div>
-                    <span class="font-bold text-gray-600">{{ $comp->qty }} {{ $comp->material->unit }}</span>
+                    <span class="font-bold text-gray-600">{{ $comp->qty }} {{ $comp->material->unit ?? '' }}</span>
                 </li>
             @endforeach
         </div>
@@ -135,10 +126,11 @@
     @endforelse
 </div>
 
-<!-- Modal Detail Produk -->
-<div id="detailModal" class="fixed inset-0 z-50 bg-gray-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+<div id="detailModal"
+     class="fixed inset-0 hidden items-center justify-center p-4"
+     style="z-index:999999;background:rgba(17,24,39,.55);backdrop-filter:blur(4px);">
     <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden transform transition-all relative">
-        <button onclick="closeDetailModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-red-100 hover:text-red-600 text-gray-500 rounded-full transition-colors">
+        <button type="button" onclick="closeDetailModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-red-100 hover:text-red-600 text-gray-500 rounded-full transition-colors">
             <i class="fa-solid fa-times"></i>
         </button>
         
@@ -153,46 +145,87 @@
             <p id="modalDesc" class="text-gray-600 mb-8 text-sm leading-relaxed">Deskripsi produk...</p>
             
             <h4 class="font-bold text-gray-800 mb-3 border-b border-gray-100 pb-2"><i class="fa-solid fa-list-check mr-2 text-gray-400"></i> Resep / Komponen Bunga</h4>
-            <ul id="modalComponents" class="divide-y divide-gray-100 bg-gray-50 rounded-lg p-4 mb-6">
-                <!-- Injected via JS -->
-            </ul>
+            <ul id="modalComponents" class="divide-y divide-gray-100 bg-gray-50 rounded-lg p-4 mb-6"></ul>
             
             <div class="flex justify-end gap-3 mt-4">
-                <button onclick="closeDetailModal()" class="px-6 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 font-bold">Tutup</button>
-                <a id="modalCheckoutLink" href="#" class="inline-flex items-center px-6 py-2 bg-florist-500 text-white rounded-xl hover:bg-florist-600 font-bold shadow-md"><i class="fa-solid fa-cart-plus mr-2"></i> Proses ke Kasir</a>
+                <button type="button" onclick="closeDetailModal()" class="px-6 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 font-bold">Tutup</button>
+                <a id="modalCheckoutLink" href="#" class="inline-flex items-center px-6 py-2 bg-florist-500 text-white rounded-xl hover:bg-florist-600 font-bold shadow-md">
+                    <i class="fa-solid fa-cart-plus mr-2"></i> Proses ke Kasir
+                </a>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    function openDetailModal(id) {
-        const template = document.getElementById(`product-data-${id}`);
-        if(template) {
-            document.getElementById('modalTitle').textContent = template.querySelector('.product-data-title').textContent;
-            document.getElementById('modalPrice').textContent = template.querySelector('.product-data-price').textContent;
-            document.getElementById('modalDesc').textContent = template.querySelector('.product-data-desc').textContent;
-            document.getElementById('modalCategory').textContent = template.querySelector('.product-data-category').textContent;
-            document.getElementById('modalComponents').innerHTML = template.querySelector('.product-data-components').innerHTML;
-            
-            // Set dynamic checkout link
-            document.getElementById('modalCheckoutLink').href = `/checkout/${id}`;
-            
-            const modal = document.getElementById('detailModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.product-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+            openDetailModal(this.dataset.productId);
+        });
+    });
+
+    const modal = document.getElementById('detailModal');
+
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDetailModal();
+            }
+        });
+    }
+});
+
+function openDetailModal(id)
+{
+    const template = document.getElementById('product-data-' + id);
+
+    if (!template) {
+        console.error('Template produk tidak ditemukan:', id);
+        return;
     }
 
-    function closeDetailModal() {
-        const modal = document.getElementById('detailModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-    
-    // Close modal on click outside
-    document.getElementById('detailModal').addEventListener('click', function(e) {
-        if(e.target === this) closeDetailModal();
-    });
+    const content = template.content;
+
+    document.getElementById('modalTitle').textContent =
+        content.querySelector('.product-data-title')?.textContent || '-';
+
+    document.getElementById('modalPrice').textContent =
+        content.querySelector('.product-data-price')?.textContent || '-';
+
+    document.getElementById('modalDesc').textContent =
+        content.querySelector('.product-data-desc')?.textContent || '-';
+
+    document.getElementById('modalCategory').textContent =
+        content.querySelector('.product-data-category')?.textContent || 'Umum';
+
+    const componentList =
+        content.querySelector('.product-data-components')?.innerHTML || '';
+
+    document.getElementById('modalComponents').innerHTML =
+        componentList.trim() !== ''
+        ? componentList
+        : '<li class="py-2 text-sm text-gray-400">Tidak ada komponen produk.</li>';
+
+    document.getElementById('modalCheckoutLink').href =
+        '/checkout/' + id;
+
+    const modal = document.getElementById('detailModal');
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDetailModal()
+{
+    const modal = document.getElementById('detailModal');
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+
+    document.body.style.overflow = 'auto';
+}
 </script>
 @endsection

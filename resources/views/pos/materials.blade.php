@@ -1,17 +1,16 @@
 @extends('layouts.pos')
 
 @section('content')
-<div class="flex h-full w-full bg-gray-50">
+<div class="flex h-full w-full bg-transparent">
     <div class="flex-1 p-6 overflow-y-auto" style="padding-bottom: 100px;">
         <div class="flex items-center gap-4 mb-6">
-            <a href="{{ route('pos.index') }}" class="w-12 h-12 bg-white border border-gray-200 hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-600 transition-colors shadow-sm touch-btn" title="Kembali ke Menu Utama">
+            <a href="{{ route('pos.index') }}" class="w-12 h-12 bg-white/90 border border-gray-100 hover:bg-gray-50 rounded-full flex items-center justify-center text-gray-600 transition-colors shadow-sm touch-btn" title="Kembali ke Menu Utama">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
-            <h2 class="text-3xl font-bold text-gray-800">{{ $title }}</h2>
+            <h2 class="text-3xl font-black text-gray-800 tracking-tight">{{ $title }}</h2>
         </div>
         
-        <!-- Tabs Navigation -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 border-b border-gray-200 scrollbar-none" style="-ms-overflow-style: none; scrollbar-width: none;">
+        <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 border-b border-gray-100 scrollbar-none" style="-ms-overflow-style: none; scrollbar-width: none;">
             @php
                 $tabs = [
                     'flower_fresh' => ['label' => '🌸 Bunga Segar', 'color' => 'orange'],
@@ -24,28 +23,31 @@
                     'greeting_card' => ['label' => '✉️ Kartu Ucapan', 'color' => 'indigo'],
                 ];
             @endphp
+
             @foreach($tabs as $tabKey => $tabData)
                 <a href="{{ route('pos.materials', ['type' => $tabKey]) }}" 
-                   class="px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm shrink-0 touch-btn {{ $type === $tabKey ? 'bg-blue-600 text-white shadow-blue-200 shadow-md' : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200' }}">
+                   class="px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm shrink-0 touch-btn {{ $type === $tabKey ? 'bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-md shadow-blue-200/50' : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200' }}">
                     {{ $tabData['label'] }}
                 </a>
             @endforeach
         </div>
 
-        <!-- Form untuk memilih banyak batangan sekaligus -->
         <form action="{{ route('pos.cart.add-multiple-materials') }}" method="POST" id="materialsForm" class="flex flex-col lg:flex-row gap-6 items-start w-full">
             @csrf
             
-            <!-- Kiri: Daftar Batangan / Eceran -->
             <div class="flex-1 flex flex-col gap-3 w-full">
                 @foreach($materials as $material)
                 @php
                     $cartKey = 'mat_' . $material->id;
                     $inCartQty = isset($cart[$cartKey]) ? $cart[$cartKey]['qty'] : 0;
+
+                    $displayPrice = ($material->price_stem ?? 0) > 0
+                        ? $material->price_stem
+                        : $material->price;
                 @endphp
-                <div class="bg-white rounded-2xl shadow-sm border-2 {{ $inCartQty > 0 ? 'border-emerald-200 bg-emerald-50/5' : 'border-gray-200' }} p-3.5 flex items-center gap-4 hover:border-blue-300 transition-all" id="row_{{ $material->id }}">
-                    <!-- Image or Leaf Icon Column -->
-                    <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0 relative flex items-center justify-center shadow-sm border border-gray-100">
+
+                <div class="glass-card rounded-[24px] shadow-sm border {{ $inCartQty > 0 ? 'border-emerald-400 bg-emerald-50/10' : 'border-white/50' }} p-3.5 flex items-center gap-4 hover:border-blue-300 transition-all duration-300" id="row_{{ $material->id }}">
+                    <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0 relative flex items-center justify-center shadow-sm border border-white/60">
                         @if($material->image)
                         <img src="{{ Storage::url($material->image) }}" class="w-full h-full object-cover">
                         @else
@@ -68,7 +70,6 @@
                         @endif
                     </div>
 
-                    <!-- Info Column -->
                     <div class="flex-1 min-w-0 text-left">
                         <div class="flex flex-wrap items-center gap-2.5 mb-1.5">
                             <h3 class="text-base font-bold text-gray-800 leading-tight truncate">{{ $material->name }}</h3>
@@ -81,22 +82,27 @@
                             </span>
                             @endif
                         </div>
+
                         <p class="text-florist-500 font-extrabold text-lg">
-                            Rp {{ number_format($material->price, 0, ',', '.') }}<span class="text-xs text-gray-400 font-medium">/{{ $material->unit }}</span>
+                            Rp {{ number_format($displayPrice, 0, ',', '.') }}
+                            <span class="text-xs text-gray-400 font-medium">/{{ $material->unit }}</span>
                         </p>
                     </div>
 
-                    <!-- Quantity Input Column -->
                     <div class="shrink-0">
                         @if($material->stock > 0)
                         <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-28 justify-between">
                             <button type="button" onclick="adjustQty('mat_{{ $material->id }}', -1)" class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-600 font-bold touch-btn">
                                 <i class="fa-solid fa-minus text-xs"></i>
                             </button>
+
                             <input type="number" name="materials[{{ $material->id }}]" id="mat_{{ $material->id }}" 
-                                   data-name="{{ $material->name }}" data-price="{{ $material->price }}" data-unit="{{ $material->unit }}"
+                                   data-name="{{ $material->name }}"
+                                   data-price="{{ $displayPrice }}"
+                                   data-unit="{{ $material->unit }}"
                                    value="0" min="0" max="{{ $material->stock }}" 
                                    class="w-8 bg-transparent text-center font-black outline-none text-base p-0 border-none focus:ring-0 mat-qty-input" readonly>
+
                             <button type="button" onclick="adjustQty('mat_{{ $material->id }}', 1, {{ $material->stock }})" class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 font-bold touch-btn">
                                 <i class="fa-solid fa-plus text-xs"></i>
                             </button>
@@ -109,13 +115,11 @@
                 @endforeach
             </div>
 
-            <!-- Kanan: Ringkasan Rincian Pilihan & Submit -->
-            <div class="w-full lg:w-80 shrink-0 bg-white rounded-3xl p-5 shadow-md border-2 border-gray-200 sticky top-6">
+            <div class="w-full lg:w-80 shrink-0 glass-card rounded-[32px] p-6 shadow-xl border border-white/40 sticky top-6">
                 <h3 class="font-bold text-gray-800 mb-4 text-lg"><i class="fa-solid fa-clipboard-list text-blue-500 mr-2"></i> Rincian Pilihan</h3>
                 
                 <div id="summary-box" class="mb-4 hidden">
                     <div id="summary-items" class="text-sm text-gray-600 mb-3 flex flex-col gap-2.5">
-                        <!-- Javascript akan memasukkan rincian di sini -->
                     </div>
                     <div class="border-t border-gray-200 pt-3 flex justify-between items-center font-bold text-gray-800">
                         <span>Total Rincian:</span>
@@ -123,12 +127,11 @@
                     </div>
                 </div>
                 
-                <div id="empty-summary" class="text-sm text-gray-400 mb-4 text-center py-6 border-2 border-dashed border-gray-200 rounded-2xl">
+                <div id="empty-summary" class="text-sm text-gray-400 mb-4 text-center py-6 border border-gray-100 bg-gray-50/50 rounded-2xl">
                     <i class="fa-solid fa-basket-shopping text-3xl mb-2 block text-gray-300"></i>
                     Belum ada bahan/item yang dipilih.
                 </div>
     
-                <!-- Submit -->
                 <button type="submit" id="submit-btn" class="w-full py-4 bg-gray-300 text-white font-bold rounded-2xl shadow-sm flex flex-col items-center justify-center gap-1 touch-btn cursor-not-allowed transition-all" disabled>
                     <span>Masukkan ke Keranjang</span>
                 </button>
@@ -150,9 +153,9 @@
         
         input.value = next;
         
-        // Highlight border baris jika dipilih secara lokal
         const matId = id.replace('mat_', '');
         const row = document.getElementById('row_' + matId);
+
         if (row) {
             if (next > 0) {
                 row.classList.remove('border-gray-200');
@@ -173,6 +176,7 @@
         
         document.querySelectorAll('.mat-qty-input').forEach(input => {
             let qty = parseInt(input.value) || 0;
+
             if (qty > 0) {
                 let name = input.getAttribute('data-name');
                 let price = parseFloat(input.getAttribute('data-price')) || 0;
@@ -207,7 +211,6 @@
             summaryItems.innerHTML = itemsHtml;
             summaryTotal.innerText = 'Rp ' + total.toLocaleString('id-ID');
             
-            // Enable submit button
             submitBtn.disabled = false;
             submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed', 'shadow-sm');
             submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'shadow-lg');
@@ -215,29 +218,29 @@
             summaryBox.classList.add('hidden');
             emptySummary.classList.remove('hidden');
             
-            // Disable submit button
             submitBtn.disabled = true;
             submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed', 'shadow-sm');
             submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'shadow-lg');
         }
     }
 
-    // Reset input quantities when the form is successfully submitted via AJAX
     const originalSendCartAjax = sendCartAjax;
+
     sendCartAjax = function(url, formData, isAddAction = false) {
         originalSendCartAjax(url, formData, isAddAction);
         
-        // Reset all local quantity input values back to 0
         document.querySelectorAll('.mat-qty-input').forEach(input => {
             input.value = 0;
-            // Restore row borders
+
             const matId = input.id.replace('mat_', '');
             const row = document.getElementById('row_' + matId);
+
             if (row) {
                 row.classList.remove('border-blue-500', 'bg-blue-50/5');
                 row.classList.add('border-gray-200');
             }
         });
+
         updateSummary();
     };
 </script>

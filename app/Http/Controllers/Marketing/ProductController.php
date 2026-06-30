@@ -4,40 +4,72 @@ namespace App\Http\Controllers\Marketing;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        $products = \App\Models\Product::with('categories')->orderBy('name')->paginate(10)->withQueryString();
+        $products = \App\Models\Product::with([
+            'categories',
+            'sizes.variants'
+        ])
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = $request->search;
+
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('description', 'like', '%' . $search . '%')
+                        ->orWhereHas('categories', function ($cat) use ($search) {
+                            $cat->where('name', 'like', '%' . $search . '%');
+                        })
+                        ->orWhereHas('sizes', function ($size) use ($search) {
+                            $size->where('size_name', 'like', '%' . $search . '%');
+                        })
+                        ->orWhereHas('sizes.variants', function ($variant) use ($search) {
+                            $variant->where('variant_name', 'like', '%' . $search . '%');
+                        });
+                });
+            })
+            ->orderBy('name')
+            ->paginate(10)
+            ->withQueryString();
+
         return view('marketing.products.index', compact('products'));
     }
 
     public function create()
     {
-        $categories = \App\Models\Category::where('is_active', true)->orderBy('name')->get();
-        $materials = \App\Models\Material::where('is_active', true)->orderBy('type')->orderBy('name')->get();
+        $categories = \App\Models\Category::where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $materials = \App\Models\Material::where('is_active', true)
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get();
+
         return view('marketing.products.create', compact('categories', 'materials'));
     }
 
     public function store(Request $request)
     {
-        // Bersihkan baris komponen kosong jika tidak diisi oleh user
         if ($request->has('components')) {
-            $filtered = array_filter($request->components, function($item) {
+            $filtered = array_filter($request->components, function ($item) {
                 return !empty($item['material_id']);
             });
-            $request->merge(['components' => !empty($filtered) ? $filtered : null]);
+
+            $request->merge([
+                'components' => !empty($filtered) ? $filtered : null
+            ]);
         }
 
         $request->validate([
             'name' => 'required|string|max:255',
             'categories' => 'nullable|array',
             'categories.*' => 'exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240', // Diperbesar ke 10MB karena akan dikompres otomatis di backend
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
             'price_type' => 'required|in:fixed,range',
             'total_price' => 'required|numeric|min:0',
             'max_price' => 'nullable|required_if:price_type,range|numeric|min:0',
@@ -45,10 +77,20 @@ class ProductController extends Controller
             'components.*.material_id' => 'required|exists:materials,id',
             'components.*.qty' => 'required|integer|min:1',
             'rental_price_per_day' => 'nullable|numeric|min:0',
-            'max_flexible_components' => 'nullable|integer|min:1'
+            'max_flexible_components' => 'nullable|integer|min:1',
+            'sizes' => 'nullable|array',
+            'sizes.*.size_name' => 'nullable|string|max:255',
+            'sizes.*.image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'sizes.*.old_image' => 'nullable|string',
+            'sizes.*.variants' => 'nullable|array',
+            'sizes.*.variants.*.variant_name' => 'nullable|string|max:255',
+            'sizes.*.variants.*.price' => 'nullable|numeric|min:0',
+            'sizes.*.variants.*.image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'sizes.*.variants.*.old_image' => 'nullable|string',
         ]);
 
         $imagePath = null;
+
         if ($request->hasFile('image')) {
             $imagePath = $this->convertToWebpAndStore($request->file('image'));
         }
@@ -59,7 +101,7 @@ class ProductController extends Controller
             'image' => $imagePath,
             'price_type' => $request->price_type,
             'total_price' => $request->total_price,
-            'max_price' => $request->price_type == 'range' ? $request->max_price : null,
+            'max_price' => $request->price_type === 'range' ? $request->max_price : null,
             'is_active' => $request->has('is_active'),
             'availability' => $request->availability ?? 'preorder',
             'is_rentable' => $request->has('is_rentable'),
@@ -67,14 +109,18 @@ class ProductController extends Controller
             'has_flexible_components' => $request->has('has_flexible_components'),
             'max_flexible_components' => $request->max_flexible_components
         ]);
+
         $product->categories()->sync($request->categories ?? []);
 
         if (is_array($request->components)) {
             $this->syncComponents($product, $request->components);
         }
 
+        $this->syncSizesAndVariants($product, $request->sizes);
+
         $url = route('marketing.products.index');
-        if ($request->has('page') && $request->page) {
+
+        if ($request->filled('page')) {
             $url .= '?page=' . $request->page;
         }
 
@@ -83,29 +129,43 @@ class ProductController extends Controller
 
     public function edit(string $id)
     {
-        $product = \App\Models\Product::with(['components.material', 'categories'])->findOrFail($id);
-        $categories = \App\Models\Category::where('is_active', true)->orderBy('name')->get();
-        $materials = \App\Models\Material::where('is_active', true)->orderBy('type')->orderBy('name')->get();
+        $product = \App\Models\Product::with([
+            'components.material',
+            'categories',
+            'sizes.variants'
+        ])->findOrFail($id);
+
+        $categories = \App\Models\Category::where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $materials = \App\Models\Material::where('is_active', true)
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get();
+
         return view('marketing.products.edit', compact('product', 'categories', 'materials'));
     }
 
     public function update(Request $request, string $id)
     {
-        $product = \App\Models\Product::findOrFail($id);
-        
-        // Bersihkan baris komponen kosong jika tidak diisi oleh user
+        $product = \App\Models\Product::with('sizes.variants')->findOrFail($id);
+
         if ($request->has('components')) {
-            $filtered = array_filter($request->components, function($item) {
+            $filtered = array_filter($request->components, function ($item) {
                 return !empty($item['material_id']);
             });
-            $request->merge(['components' => !empty($filtered) ? $filtered : null]);
+
+            $request->merge([
+                'components' => !empty($filtered) ? $filtered : null
+            ]);
         }
 
         $request->validate([
             'name' => 'required|string|max:255',
             'categories' => 'nullable|array',
             'categories.*' => 'exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240', // Diperbesar ke 10MB karena akan dikompres otomatis di backend
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
             'price_type' => 'required|in:fixed,range',
             'total_price' => 'required|numeric|min:0',
             'max_price' => 'nullable|required_if:price_type,range|numeric|min:0',
@@ -113,7 +173,16 @@ class ProductController extends Controller
             'components.*.material_id' => 'required|exists:materials,id',
             'components.*.qty' => 'required|integer|min:1',
             'rental_price_per_day' => 'nullable|numeric|min:0',
-            'max_flexible_components' => 'nullable|integer|min:1'
+            'max_flexible_components' => 'nullable|integer|min:1',
+            'sizes' => 'nullable|array',
+            'sizes.*.size_name' => 'nullable|string|max:255',
+            'sizes.*.image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'sizes.*.old_image' => 'nullable|string',
+            'sizes.*.variants' => 'nullable|array',
+            'sizes.*.variants.*.variant_name' => 'nullable|string|max:255',
+            'sizes.*.variants.*.price' => 'nullable|numeric|min:0',
+            'sizes.*.variants.*.image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'sizes.*.variants.*.old_image' => 'nullable|string',
         ]);
 
         $data = [
@@ -121,7 +190,7 @@ class ProductController extends Controller
             'description' => $request->description,
             'price_type' => $request->price_type,
             'total_price' => $request->total_price,
-            'max_price' => $request->price_type == 'range' ? $request->max_price : null,
+            'max_price' => $request->price_type === 'range' ? $request->max_price : null,
             'is_active' => $request->has('is_active'),
             'availability' => $request->availability ?? 'preorder',
             'is_rentable' => $request->has('is_rentable'),
@@ -131,22 +200,31 @@ class ProductController extends Controller
         ];
 
         if ($request->hasFile('image')) {
-            if ($product->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($product->image)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image);
+            if ($product->image && Storage::disk('public')->exists($product->image)) {
+                Storage::disk('public')->delete($product->image);
             }
+
             $data['image'] = $this->convertToWebpAndStore($request->file('image'));
         }
 
         $product->update($data);
         $product->categories()->sync($request->categories ?? []);
 
-        $product->components()->delete(); // Remove old components
+        $product->components()->delete();
+
         if (is_array($request->components)) {
             $this->syncComponents($product, $request->components);
         }
 
+        if (method_exists($product, 'sizes')) {
+            $product->sizes()->delete();
+        }
+
+        $this->syncSizesAndVariants($product, $request->sizes);
+
         $url = route('marketing.products.index');
-        if ($request->has('page') && $request->page) {
+
+        if ($request->filled('page')) {
             $url .= '?page=' . $request->page;
         }
 
@@ -155,11 +233,19 @@ class ProductController extends Controller
 
     public function destroy(Request $request, string $id)
     {
-        $product = \App\Models\Product::findOrFail($id);
+        $product = \App\Models\Product::with('sizes.variants')->findOrFail($id);
+
+        if ($product->image && Storage::disk('public')->exists($product->image)) {
+            Storage::disk('public')->delete($product->image);
+        }
+
+        $this->deleteOldSizeAndVariantImages($product);
+
         $product->delete();
 
         $url = route('marketing.products.index');
-        if ($request->has('page') && $request->page) {
+
+        if ($request->filled('page')) {
             $url .= '?page=' . $request->page;
         }
 
@@ -168,11 +254,18 @@ class ProductController extends Controller
 
     private function syncComponents(\App\Models\Product $product, array $components)
     {
-        $totalPrice = 0;
         foreach ($components as $comp) {
+            if (empty($comp['material_id']) || empty($comp['qty'])) {
+                continue;
+            }
+
             $material = \App\Models\Material::find($comp['material_id']);
+
+            if (!$material) {
+                continue;
+            }
+
             $subtotal = $comp['qty'] * $material->price;
-            $totalPrice += $subtotal;
 
             \App\Models\ProductComponent::create([
                 'product_id' => $product->id,
@@ -183,38 +276,95 @@ class ProductController extends Controller
                 'notes' => $comp['notes'] ?? null
             ]);
         }
-        // Harga tidak lagi di-override otomatis dari komponen, tapi diset manual
-        // $product->update(['total_price' => $totalPrice]);
     }
 
-    /**
-     * Convert the uploaded image to modern WebP format with 80% compression quality.
-     *
-     * @param \Illuminate\Http\UploadedFile $file
-     * @return string
-     */
+    private function syncSizesAndVariants(\App\Models\Product $product, $sizes)
+    {
+        if (!$sizes || !is_array($sizes)) {
+            return;
+        }
+
+        foreach ($sizes as $sizeData) {
+            if (empty($sizeData['size_name'])) {
+                continue;
+            }
+
+            $sizeImagePath = $sizeData['old_image'] ?? null;
+
+            if (
+                isset($sizeData['image']) &&
+                $sizeData['image'] instanceof UploadedFile
+            ) {
+                $sizeImagePath = $this->convertToWebpAndStore($sizeData['image']);
+            }
+
+            $size = \App\Models\ProductSize::create([
+                'product_id' => $product->id,
+                'size_name' => $sizeData['size_name'],
+                'image' => $sizeImagePath,
+                'is_active' => true,
+            ]);
+
+            if (!empty($sizeData['variants']) && is_array($sizeData['variants'])) {
+                foreach ($sizeData['variants'] as $variantData) {
+                    if (empty($variantData['variant_name'])) {
+                        continue;
+                    }
+
+                    $variantImagePath = $variantData['old_image'] ?? null;
+
+                    if (
+                        isset($variantData['image']) &&
+                        $variantData['image'] instanceof UploadedFile
+                    ) {
+                        $variantImagePath = $this->convertToWebpAndStore($variantData['image']);
+                    }
+
+                    \App\Models\ProductVariant::create([
+                        'product_size_id' => $size->id,
+                        'variant_name' => $variantData['variant_name'],
+                        'price' => $variantData['price'] ?? 0,
+                        'image' => $variantImagePath,
+                        'is_active' => true,
+                    ]);
+                }
+            }
+        }
+    }
+
+    private function deleteOldSizeAndVariantImages(\App\Models\Product $product)
+    {
+        foreach ($product->sizes as $size) {
+            if ($size->image && Storage::disk('public')->exists($size->image)) {
+                Storage::disk('public')->delete($size->image);
+            }
+
+            foreach ($size->variants as $variant) {
+                if (!empty($variant->image) && Storage::disk('public')->exists($variant->image)) {
+                    Storage::disk('public')->delete($variant->image);
+                }
+            }
+        }
+    }
+
     private function convertToWebpAndStore($file)
     {
         $image = @imagecreatefromstring(file_get_contents($file->getRealPath()));
+
         if ($image === false) {
-            // Fallback to storing as-is if imagecreatefromstring fails
             return $file->store('products', 'public');
         }
 
-        // Generate clean path
         $filename = 'products/' . uniqid() . '.webp';
         $destinationPath = storage_path('app/public/' . $filename);
 
-        // Ensure directory exists
         if (!file_exists(dirname($destinationPath))) {
             @mkdir(dirname($destinationPath), 0755, true);
         }
 
-        // Save alpha channel for PNG/WebP transparency
         imagealphablending($image, false);
         imagesavealpha($image, true);
 
-        // Compress and save as WebP with 80% quality
         imagewebp($image, $destinationPath, 80);
         imagedestroy($image);
 
