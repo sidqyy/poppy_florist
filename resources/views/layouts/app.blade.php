@@ -65,10 +65,31 @@
 
         <!-- Page Content -->
         <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6 pb-20">
+            @if(session('success'))
+            <div class="mb-4 p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 flex items-center gap-3 shadow-sm">
+                <i class="fa-solid fa-circle-check text-green-500"></i>
+                <p>{{ session('success') }}</p>
+            </div>
+            @endif
+
             @if(session('error'))
-            <div class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 flex items-center gap-3">
+            <div class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 flex items-center gap-3 shadow-sm">
                 <i class="fa-solid fa-triangle-exclamation text-red-500"></i>
                 <p>{{ session('error') }}</p>
+            </div>
+            @endif
+
+            @if($errors->any())
+            <div class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 flex flex-col gap-1 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-triangle-exclamation text-red-500"></i>
+                    <p class="font-bold">Terjadi kesalahan:</p>
+                </div>
+                <ul class="list-disc list-inside ml-8 text-sm">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
             @endif
 
