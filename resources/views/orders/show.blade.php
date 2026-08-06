@@ -10,7 +10,7 @@
         <p class="text-gray-500 text-sm mt-1">Dibuat pada {{ $order->created_at->format('d/m/Y H:i') }} oleh {{ $order->user->name ?? 'System' }}</p>
     </div>
     <div class="flex gap-2">
-@if(in_array($order->payment_status, ['paid', 'paid_qris', 'paid_tf']))
+@if(in_array($order->payment_status, ['paid', 'paid_qris', 'paid_tf', 'dp']))
 <a href="{{ route('orders.print', $order->id) }}" target="_blank" class="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
     <i class="fa-solid fa-print mr-2"></i> Cetak Struk
 </a>

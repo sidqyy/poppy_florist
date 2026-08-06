@@ -727,7 +727,7 @@ class OrderController extends Controller
     {
         $order = \App\Models\Order::with(['items.components', 'payments.verifier', 'user'])->findOrFail($id);
 
-        if (!in_array($order->payment_status, ['paid_qris', 'paid_tf', 'paid'])) {
+        if (!in_array($order->payment_status, ['paid_qris', 'paid_tf', 'paid', 'dp'])) {
             return back()->withErrors([
                 'error' => 'Nota hanya bisa dicetak jika pesanan sudah LUNAS.',
             ]);

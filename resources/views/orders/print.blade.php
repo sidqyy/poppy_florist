@@ -24,6 +24,7 @@
         body {
             font-family: 'Courier New', Courier, monospace;
             font-size: 10px;
+            font-weight: bold; /* Menjadikan seluruh teks di nota lebih tebal */
             color: #000;
             line-height: 1.15;
             display: flex;
@@ -184,13 +185,21 @@
             @endif
         </table>
 
-        <table class="mb-2">
+<table class="mb-2">
             <tr>
                 <td class="label-col">Bayar</td>
                 @php
                     $verifiedPayment = $order->payments()->where('status', 'verified')->first();
                 @endphp
-                <td>: {{ $verifiedPayment ? strtoupper($verifiedPayment->payment_method) : 'BELUM LUNAS' }}</td>
+                <td>: 
+                    @if($order->payment_status === 'dp')
+                        DP ({{ $verifiedPayment ? strtoupper($verifiedPayment->payment_method) : 'DP' }})
+                    @elseif(in_array($order->payment_status, ['paid', 'paid_qris', 'paid_tf']))
+                        {{ $verifiedPayment ? strtoupper($verifiedPayment->payment_method) : 'LUNAS' }}
+                    @else
+                        BELUM LUNAS
+                    @endif
+                </td>
             </tr>
         </table>
 
@@ -263,7 +272,7 @@
 
         <div class="border-dashed"></div>
 
-        <div class="mb-2">
+<div class="mb-2">
             <table>
                 <tr>
                     <td>Subtotal</td>
@@ -288,6 +297,24 @@
             <div class="text-right mt-2" style="font-weight: bold;">
                 TOTAL: Rp {{ number_format($order->total_amount, 0, ',', '.') }}
             </div>
+
+            @if($order->payment_status === 'dp')
+            @php
+                // Menghitung total pembayaran yang sudah masuk (terverifikasi)
+                $totalPaid = $order->payments()->where('status', 'verified')->sum('amount');
+                $remaining = $order->total_amount - $totalPaid;
+            @endphp
+            <table class="mt-1" style="border-top: 1px dashed #000; padding-top: 2px;">
+                <tr>
+                    <td>Sudah Dibayar (DP)</td>
+                    <td class="text-right">Rp {{ number_format($totalPaid, 0, ',', '.') }}</td>
+                </tr>
+                <tr style="font-weight: bold;">
+                    <td>Sisa Pelunasan</td>
+                    <td class="text-right">Rp {{ number_format($remaining, 0, ',', '.') }}</td>
+                </tr>
+            </table>
+            @endif
         </div>
 
         @if($order->payment_status !== 'paid')
