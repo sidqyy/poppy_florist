@@ -307,64 +307,99 @@
             }
 
             if (printData) {
-                Swal.fire({
-                    title: 'Pesanan Berhasil!',
-                    html: `
-                        <div class="text-left mt-2">
-                            <div class="bg-gray-50 rounded-xl p-4 border-2 border-gray-200 shadow-md text-sm">
-                                <div class="flex justify-between mb-2">
-                                    <span class="text-gray-500">No. Pesanan:</span>
-                                    <span class="font-bold text-gray-800">${printData.order_number}</span>
-                                </div>
-
-                                <div class="flex justify-between mb-2">
-                                    <span class="text-gray-500">Pelanggan:</span>
-                                    <span class="font-bold text-gray-800">${printData.customer_name}</span>
-                                </div>
-
-                                <div class="flex justify-between mb-2">
-                                    <span class="text-gray-500">Total Item:</span>
-                                    <span class="font-bold text-gray-800">${printData.items_count} Item</span>
-                                </div>
-
-                                <div class="flex justify-between mb-2 border-t pt-2 mt-2">
-                                    <span class="text-gray-600 font-bold">Total Tagihan:</span>
-                                    <span class="font-extrabold text-florist-600">${printData.total_amount}</span>
-                                </div>
-
-                                ${printData.payment_amount ? `
-                                    <div class="flex justify-between mb-1">
-                                        <span class="text-gray-500">Nominal Bayar:</span>
-                                        <span class="font-bold text-gray-800">${printData.payment_amount} (${printData.payment_method})</span>
+                const showReceipt = () => {
+                    Swal.fire({
+                        title: 'Pesanan Berhasil!',
+                        html: `
+                            <div class="text-left mt-2">
+                                <div class="bg-gray-50 rounded-xl p-4 border-2 border-gray-200 shadow-md text-sm">
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-500">No. Pesanan:</span>
+                                        <span class="font-bold text-gray-800">${printData.order_number}</span>
                                     </div>
 
-                                    <div class="flex justify-between border-t pt-2 mt-2">
-                                        <span class="text-gray-600 font-bold text-base">Kembalian:</span>
-                                        <span class="font-extrabold text-green-500 text-lg">${printData.change}</span>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-500">Pelanggan:</span>
+                                        <span class="font-bold text-gray-800">${printData.customer_name}</span>
                                     </div>
-                                ` : ''}
+
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-500">Total Item:</span>
+                                        <span class="font-bold text-gray-800">${printData.items_count} Item</span>
+                                    </div>
+
+                                    <div class="flex justify-between mb-2 border-t pt-2 mt-2">
+                                        <span class="text-gray-600 font-bold">Total Tagihan:</span>
+                                        <span class="font-extrabold text-florist-600">${printData.total_amount}</span>
+                                    </div>
+
+                                    ${printData.payment_amount ? `
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-gray-500">Nominal Bayar:</span>
+                                            <span class="font-bold text-gray-800">${printData.payment_amount} (${printData.payment_method})</span>
+                                        </div>
+
+                                        <div class="flex justify-between border-t pt-2 mt-2">
+                                            <span class="text-gray-600 font-bold text-base">Kembalian:</span>
+                                            <span class="font-extrabold text-green-500 text-lg">${printData.change}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
                             </div>
-                        </div>
-                    `,
-                    icon: 'success',
-                    showCancelButton: true,
-                    confirmButtonColor: '#EC4899',
-                    cancelButtonColor: '#9CA3AF',
-                    confirmButtonText: '<i class="fa-solid fa-print"></i> Cetak Struk',
-                    cancelButtonText: 'Tutup'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        const printWindow = window.open(printData.url, '_blank');
+                        `,
+                        icon: 'success',
+                        showCancelButton: true,
+                        allowEscapeKey: false,
+                        allowOutsideClick: false,
+                        confirmButtonColor: '#EC4899',
+                        cancelButtonColor: '#9CA3AF',
+                        confirmButtonText: '<i class="fa-solid fa-print"></i> Cetak Struk',
+                        cancelButtonText: 'Tutup'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const printWindow = window.open(printData.url, '_blank');
 
-                        if (!printWindow) {
+                            if (!printWindow) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Popup Diblokir',
+                                    text: 'Izinkan popup browser agar struk bisa dicetak.'
+                                }).then(showReceipt);
+                            } else {
+                                Swal.fire({
+                                    title: 'Udah keluar belum struknya beb?',
+                                    text: 'Pastikan struk sudah keluar dari printer yaw.',
+                                    icon: 'question',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Sudah',
+                                    cancelButtonText: 'Belum, Cetak Lagi',
+                                    confirmButtonColor: '#10B981',
+                                    cancelButtonColor: '#3B82F6'
+                                }).then((res) => {
+                                    if (!res.isConfirmed) {
+                                        showReceipt();
+                                    }
+                                });
+                            }
+                        } else if (result.isDismissed) {
                             Swal.fire({
+                                title: 'Cek lagi deh, struknya kecetak belum?',
                                 icon: 'warning',
-                                title: 'Popup Diblokir',
-                                text: 'Izinkan popup browser agar struk bisa dicetak.'
+                                showCancelButton: true,
+                                confirmButtonText: 'Sudah',
+                                cancelButtonText: 'Belum (Kembali)',
+                                confirmButtonColor: '#10B981',
+                                cancelButtonColor: '#EC4899'
+                            }).then((res) => {
+                                if (!res.isConfirmed) {
+                                    showReceipt();
+                                }
                             });
                         }
-                    }
-                });
+                    });
+                };
+
+                showReceipt();
             }
         });
     </script>
