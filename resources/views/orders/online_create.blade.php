@@ -82,7 +82,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-800 mb-1">Harga Kesepakatan (Rp) <span class="text-red-500">*</span></label>
-                            <input type="number" name="total_price" required min="0" value="{{ old('total_price') ?? 0 }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none font-bold text-florist-600">
+                            <input type="number" name="total_price" id="total_price" required min="0" value="{{ old('total_price') ?? 0 }}" readonly class="w-full px-4 py-2 border border-gray-300 bg-gray-50 rounded-lg text-gray-600 outline-none font-bold">
                         </div>
 
                         <div>
@@ -111,10 +111,14 @@
                         <div id="components_container" class="space-y-3">
                             <div class="component-row grid grid-cols-12 gap-2">
                                 <div class="col-span-4">
-                                    <select name="components[0][material_id]" onchange="toggleColorInput(this)" class="material-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
+                                    <select name="components[0][material_id]" onchange="toggleColorInput(this); calculateTotalPrice()" class="material-select component-material w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
                                         <option value="">Pilih Material</option>
                                         @foreach ($materials as $material)
-                                            <option value="{{ $material->id }}" data-type="{{ $material->type }}">
+                                            <option value="{{ $material->id }}" 
+                                                    data-type="{{ $material->type }}"
+                                                    data-price="{{ $material->price ?? 0 }}"
+                                                    data-price-arrangement="{{ $material->price_arrangement ?? 0 }}"
+                                                    data-price-stem="{{ $material->price_stem ?? 0 }}">
                                                 {{ $material->name }} - Stok: {{ $material->stock }} {{ $material->unit }}
                                             </option>
                                         @endforeach
@@ -122,7 +126,7 @@
                                 </div>
 
                                 <div class="col-span-2">
-                                    <select name="components[0][price_type]" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
+                                    <select name="components[0][price_type]" onchange="calculateTotalPrice()" class="component-price-type w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
                                         <option value="arrangement">Rangkaian</option>
                                         <option value="stem">Batangan</option>
                                     </select>
@@ -133,7 +137,7 @@
                                 </div>
 
                                 <div class="col-span-2">
-                                    <input type="number" name="components[0][qty]" min="1" placeholder="Qty" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
+                                    <input type="number" name="components[0][qty]" min="1" placeholder="Qty" oninput="calculateTotalPrice()" class="component-qty w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
                                 </div>
 
                                 <div class="col-span-1">
@@ -271,10 +275,14 @@
 
         row.innerHTML = `
             <div class="col-span-4">
-                <select name="components[${componentIndex}][material_id]" onchange="toggleColorInput(this)" class="material-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
+                <select name="components[${componentIndex}][material_id]" onchange="toggleColorInput(this); calculateTotalPrice()" class="material-select component-material w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
                     <option value="">Pilih Material</option>
                     @foreach ($materials as $material)
-                        <option value="{{ $material->id }}" data-type="{{ $material->type }}">
+                        <option value="{{ $material->id }}" 
+                                data-type="{{ $material->type }}"
+                                data-price="{{ $material->price ?? 0 }}"
+                                data-price-arrangement="{{ $material->price_arrangement ?? 0 }}"
+                                data-price-stem="{{ $material->price_stem ?? 0 }}">
                             {{ $material->name }} - Stok: {{ $material->stock }} {{ $material->unit }}
                         </option>
                     @endforeach
@@ -282,7 +290,7 @@
             </div>
 
             <div class="col-span-2">
-                <select name="components[${componentIndex}][price_type]" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
+                <select name="components[${componentIndex}][price_type]" onchange="calculateTotalPrice()" class="component-price-type w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
                     <option value="arrangement">Rangkaian</option>
                     <option value="stem">Batangan</option>
                 </select>
@@ -293,7 +301,7 @@
             </div>
 
             <div class="col-span-2">
-                <input type="number" name="components[${componentIndex}][qty]" min="1" placeholder="Qty" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
+                <input type="number" name="components[${componentIndex}][qty]" min="1" placeholder="Qty" oninput="calculateTotalPrice()" class="component-qty w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none text-sm">
             </div>
 
             <div class="col-span-1">
@@ -312,7 +320,42 @@
 
         if (rows.length > 1) {
             button.closest('.component-row').remove();
+            calculateTotalPrice();
         }
+    }
+
+    function calculateTotalPrice() {
+        let total = 0;
+        const rows = document.querySelectorAll('.component-row');
+        
+        rows.forEach(row => {
+            const materialSelect = row.querySelector('.component-material');
+            const priceTypeSelect = row.querySelector('.component-price-type');
+            const qtyInput = row.querySelector('.component-qty');
+            
+            if (materialSelect && priceTypeSelect && qtyInput) {
+                const selectedOption = materialSelect.options[materialSelect.selectedIndex];
+                const priceType = priceTypeSelect.value;
+                const qty = parseFloat(qtyInput.value) || 0;
+                
+                if (selectedOption && selectedOption.value !== "") {
+                    let price = 0;
+                    if (priceType === 'arrangement') {
+                        price = parseFloat(selectedOption.getAttribute('data-price-arrangement')) || 0;
+                    } else {
+                        price = parseFloat(selectedOption.getAttribute('data-price-stem')) || 0;
+                    }
+
+                    if (price === 0) {
+                        price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                    }
+                    
+                    total += (price * qty);
+                }
+            }
+        });
+        
+        document.getElementById('total_price').value = total;
     }
 
     function toggleColorInput(select) {

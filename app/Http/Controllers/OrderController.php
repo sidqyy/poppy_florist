@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
-    private function paymentStatusLabel($status)
+    private function paymentStatusLabel(?string $status)
     {
         return match ($status) {
             'paid_qris' => 'LUNAS QRIS',
@@ -458,6 +458,218 @@ class OrderController extends Controller
         }
 
         return redirect()->route('orders.show', $order->id)->with('success', 'Pesanan Online berhasil diinput!');
+    }
+
+    public function editOnline(string $id)
+    {
+        $order = \App\Models\Order::with('items.components')->findOrFail($id);
+
+        if (in_array($order->status, ['completed', 'cancelled'])) {
+            return redirect()->route('orders.show', $order->id)->withErrors(['error' => 'Pesanan yang sudah selesai atau dibatalkan tidak dapat diedit.']);
+        }
+
+        $materials = \App\Models\Material::where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('orders.online_edit', compact('order', 'materials'));
+    }
+
+    public function updateOnline(Request $request, string $id)
+    {
+        $order = \App\Models\Order::with('items.components')->findOrFail($id);
+
+        if (in_array($order->status, ['completed', 'cancelled'])) {
+            return redirect()->route('orders.show', $order->id)->withErrors(['error' => 'Pesanan yang sudah selesai atau dibatalkan tidak dapat diedit.']);
+        }
+
+        $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'nullable|string|max:255',
+            'recipient_name' => 'nullable|string|max:255',
+            'recipient_phone' => 'nullable|string|max:255',
+            'delivery_method' => 'required|in:pickup,delivery',
+            'delivery_address' => 'nullable|string',
+            'scheduled_at' => 'required|date',
+            'product_name' => 'required|string|max:255',
+            'total_price' => 'required|numeric|min:0',
+            'reference_image' => 'nullable|image|max:2048',
+            'greeting_card' => 'nullable|string',
+            'notes' => 'required|string',
+            'components' => 'nullable|array',
+            'components.*.material_id' => 'nullable|exists:materials,id',
+            'components.*.qty' => 'nullable|integer|min:1',
+            'components.*.price_type' => 'nullable|in:arrangement,stem',
+            'components.*.color' => 'nullable|string|max:100',
+        ]);
+
+        $imagePath = $order->reference_image;
+
+        if ($request->hasFile('reference_image')) {
+            $imagePath = $request->file('reference_image')->store('references', 'public');
+        }
+
+        $deliveryFee = floatval($request->delivery_fee ?? 0);
+        $totalAmount = floatval($request->total_price ?? 0) + $deliveryFee;
+
+        // Preserve original discount logic (readonly in edit form)
+        $finalTotalAmount = max(0, $totalAmount - $order->discount);
+
+        $deductedStates = ['processing', 'ready'];
+        $isDeducted = in_array($order->status, $deductedStates);
+
+        DB::beginTransaction();
+
+        try {
+            // 1. Return stock for old components if deducted
+            if ($isDeducted) {
+                foreach ($order->items as $item) {
+                    foreach ($item->components as $component) {
+                        if ($component->material_id) {
+                            $material = \App\Models\Material::find($component->material_id);
+                            if ($material) {
+                                $stockBefore = $material->stock;
+                                $material->increment('stock', $component->qty);
+                                $stockAfter = $material->fresh()->stock;
+                                
+                                \App\Models\StockMutation::create([
+                                    'material_id' => $material->id,
+                                    'user_id' => Auth::id(),
+                                    'type' => 'in',
+                                    'qty' => $component->qty,
+                                    'stock_before' => $stockBefore,
+                                    'stock_after' => $stockAfter,
+                                    'notes' => 'Pengembalian stok (Edit Data) dari pesanan ' . $order->order_number,
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Delete old components
+            foreach ($order->items as $item) {
+                $item->components()->delete();
+            }
+            $order->items()->delete();
+
+            // 3. Update order data
+            $order->update([
+                'customer_name' => $request->customer_name,
+                'customer_phone' => $request->customer_phone,
+                'recipient_name' => $request->recipient_name,
+                'recipient_phone' => $request->recipient_phone,
+                'delivery_method' => $request->delivery_method,
+                'delivery_address' => $request->delivery_address,
+                'delivery_distance' => $request->delivery_distance,
+                'delivery_fee' => $deliveryFee,
+                'delivery_lat' => $request->delivery_lat,
+                'delivery_lng' => $request->delivery_lng,
+                'scheduled_at' => $request->scheduled_at,
+                'total_amount' => $finalTotalAmount,
+                'reference_image' => $imagePath,
+                'product_name' => $request->product_name,
+                'greeting_card' => $request->greeting_card,
+                'notes' => $request->notes,
+                'is_urgent' => $request->has('is_urgent'),
+                'estimated_time' => $request->estimated_time,
+            ]);
+
+            // 4. Create new item and components
+            $orderItem = \App\Models\OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => null,
+                'product_name' => $request->product_name,
+                'qty' => 1,
+                'price' => $finalTotalAmount,
+                'subtotal' => $finalTotalAmount,
+            ]);
+
+            if ($request->has('components')) {
+                foreach ($request->components as $component) {
+                    if (empty($component['material_id']) || empty($component['qty'])) {
+                        continue;
+                    }
+
+                    $material = \App\Models\Material::find($component['material_id']);
+
+                    if (!$material) {
+                        continue;
+                    }
+
+                    $priceType = $component['price_type'] ?? 'arrangement';
+
+                    if ($priceType === 'stem') {
+                        $unitPrice = $material->price_stem > 0
+                            ? $material->price_stem
+                            : $material->price;
+                    } else {
+                        $unitPrice = $material->price_arrangement > 0
+                            ? $material->price_arrangement
+                            : $material->price;
+                    }
+
+                    $color = null;
+
+                    if ($material->type === 'flower_fresh' && !empty($component['color'])) {
+                        $color = trim($component['color']);
+                    }
+
+                    \App\Models\OrderItemComponent::create([
+                        'order_item_id' => $orderItem->id,
+                        'material_id' => $material->id,
+                        'material_name' => $material->name,
+                        'color' => $color,
+                        'qty' => $component['qty'],
+                        'unit_price' => $unitPrice,
+                        'subtotal' => $unitPrice * $component['qty'],
+                    ]);
+
+                    // 5. Deduct stock for new components if deducted
+                    if ($isDeducted) {
+                        $stockBefore = $material->stock;
+                        if ($material->stock < $component['qty']) {
+                            DB::rollBack();
+                            return back()->withErrors(['error' => 'Stok ' . $material->name . ' tidak mencukupi untuk diubah. Tersedia: ' . $material->stock]);
+                        }
+                        
+                        $material->decrement('stock', $component['qty']);
+                        $stockAfter = $material->fresh()->stock;
+                        
+                        \App\Models\StockMutation::create([
+                            'material_id' => $material->id,
+                            'user_id' => Auth::id(),
+                            'type' => 'out',
+                            'qty' => $component['qty'],
+                            'stock_before' => $stockBefore,
+                            'stock_after' => $stockAfter,
+                            'notes' => 'Penggunaan stok (Edit Data) untuk pesanan ' . $order->order_number,
+                        ]);
+                    }
+                }
+            }
+
+            \App\Services\AuditService::log('Mengubah Pesanan Online', null, $order->toArray());
+            
+            \App\Models\OrderHistory::create([
+                'order_id' => $order->id,
+                'user_id' => Auth::id(),
+                'old_status' => $order->status,
+                'new_status' => $order->status,
+                'action' => 'edit_data',
+                'notes' => 'Data pesanan dan/atau komponen diubah oleh ' . (Auth::user()->name ?? 'Sistem'),
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('orders.show', $order->id)->with('success', 'Data pesanan berhasil diperbarui!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return back()->withErrors([
+                'error' => 'Gagal memperbarui pesanan: ' . $e->getMessage(),
+            ])->withInput();
+        }
     }
 
     public function exportExcel(Request $request)

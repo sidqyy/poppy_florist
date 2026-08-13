@@ -19,6 +19,11 @@
     <i class="fa-solid fa-lock mr-2"></i> Cetak Dikunci
 </div>
 @endif
+@if($order->source === 'online' && !in_array($order->status, ['completed', 'cancelled']))
+<a href="{{ route('orders.online.edit', $order->id) }}" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-sm font-medium">
+    <i class="fa-solid fa-pen-to-square mr-1"></i> Edit Data
+</a>
+@endif
         <a href="{{ route('orders.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
             Kembali
         </a>

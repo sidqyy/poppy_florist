@@ -25,7 +25,9 @@ Route::middleware('guest')->group(function () {
         if (\Illuminate\Support\Facades\Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
-            $role = auth()->user()->role;
+            /** @var \App\Models\User $user */
+            $user = auth()->user();
+            $role = $user->role;
 
             if (in_array($role, ['asmen', 'it support'])) {
                 return redirect()->intended('/admin');
@@ -98,6 +100,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/orders/online', [\App\Http\Controllers\OrderController::class, 'createOnline'])->name('orders.online.create');
     Route::post('/orders/online', [\App\Http\Controllers\OrderController::class, 'storeOnline'])->name('orders.online.store');
+    Route::get('/orders/online/{id}/edit', [\App\Http\Controllers\OrderController::class, 'editOnline'])->name('orders.online.edit');
+    Route::put('/orders/online/{id}', [\App\Http\Controllers\OrderController::class, 'updateOnline'])->name('orders.online.update');
 
     Route::get('/orders/{id}', [\App\Http\Controllers\OrderController::class, 'show'])->name('orders.show');
     Route::put('/orders/{id}/status', [\App\Http\Controllers\OrderController::class, 'updateStatus'])->name('orders.updateStatus');
