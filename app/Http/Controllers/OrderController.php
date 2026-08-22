@@ -211,7 +211,12 @@ class OrderController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('orders.online_create', compact('materials'));
+        $products = \App\Models\Product::with('sizes.variants')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('orders.online_create', compact('materials', 'products'));
     }
 
     public function storeOnline(Request $request)
@@ -472,7 +477,12 @@ class OrderController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('orders.online_edit', compact('order', 'materials'));
+        $products = \App\Models\Product::with('sizes.variants')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('orders.online_edit', compact('order', 'materials', 'products'));
     }
 
     public function updateOnline(Request $request, string $id)

@@ -74,15 +74,20 @@
                 </h4>
 
                 <div class="space-y-4">
-                    <div>
+                    <div class="relative" id="product_autocomplete_wrapper">
                         <label class="block text-sm font-bold text-gray-800 mb-1">Nama Produk yang Dipesan <span class="text-red-500">*</span></label>
-                        <input type="text" name="product_name" required value="{{ old('product_name') }}" placeholder="Contoh: Buket Mawar Merah 10 Tangkai" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none">
+                        <input type="text" name="product_name" id="product_name" autocomplete="off" required value="{{ old('product_name') }}" placeholder="Ketik nama produk atau varian..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none">
+                        
+                        <!-- Custom Dropdown Container -->
+                        <div id="product_dropdown" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                            <!-- Items will be injected here by JS -->
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-800 mb-1">Harga Kesepakatan (Rp) <span class="text-red-500">*</span></label>
-                            <input type="number" name="total_price" id="total_price" required min="0" value="{{ old('total_price') ?? 0 }}" readonly class="w-full px-4 py-2 border border-gray-300 bg-gray-50 rounded-lg text-gray-600 outline-none font-bold">
+                            <input type="number" name="total_price" id="total_price" required min="0" value="{{ old('total_price') ?? 0 }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none font-bold">
                         </div>
 
                         <div>
@@ -430,6 +435,83 @@
         document.querySelectorAll('.material-select').forEach(select => {
             toggleColorInput(select);
         });
+
+        // Catalog Products Data
+        const catalogProducts = [
+            @foreach($products as $product)
+                @if($product->sizes && $product->sizes->count() > 0)
+                    @foreach($product->sizes as $size)
+                        @if($size->variants && $size->variants->count() > 0)
+                            @foreach($size->variants as $variant)
+                                { name: "{{ $product->name }} - {{ $size->size_name }} - {{ $variant->variant_name }}", price: {{ $variant->price }} },
+                            @endforeach
+                        @else
+                            { name: "{{ $product->name }} - {{ $size->size_name }}", price: {{ $product->total_price }} },
+                        @endif
+                    @endforeach
+                @else
+                    { name: "{{ $product->name }}", price: {{ $product->total_price }} },
+                @endif
+            @endforeach
+        ];
+
+        const productNameInput = document.getElementById('product_name');
+        const productDropdown = document.getElementById('product_dropdown');
+        const wrapper = document.getElementById('product_autocomplete_wrapper');
+
+        function formatRupiah(number) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+        }
+
+        function renderDropdown(items) {
+            productDropdown.innerHTML = '';
+            if (items.length === 0) {
+                productDropdown.classList.add('hidden');
+                return;
+            }
+
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'px-4 py-3 hover:bg-florist-50 cursor-pointer border-b last:border-b-0 flex justify-between items-center transition-colors';
+                div.innerHTML = `
+                    <div class="font-medium text-gray-800 text-sm">${item.name}</div>
+                    <div class="text-florist-600 font-bold text-sm bg-florist-50 px-2 py-1 rounded">${formatRupiah(item.price)}</div>
+                `;
+                
+                div.addEventListener('mousedown', function(e) {
+                    e.preventDefault(); // Prevent blur
+                    productNameInput.value = item.name;
+                    document.getElementById('total_price').value = item.price;
+                    productDropdown.classList.add('hidden');
+                });
+                
+                productDropdown.appendChild(div);
+            });
+            
+            productDropdown.classList.remove('hidden');
+        }
+
+        if(productNameInput) {
+            productNameInput.addEventListener('input', function() {
+                const val = this.value.toLowerCase();
+                if (!val) {
+                    productDropdown.classList.add('hidden');
+                    return;
+                }
+                const filtered = catalogProducts.filter(p => p.name.toLowerCase().includes(val));
+                renderDropdown(filtered);
+            });
+
+            productNameInput.addEventListener('focus', function() {
+                const val = this.value.toLowerCase();
+                const filtered = val ? catalogProducts.filter(p => p.name.toLowerCase().includes(val)) : catalogProducts;
+                if(filtered.length > 0) renderDropdown(filtered);
+            });
+
+            productNameInput.addEventListener('blur', function() {
+                productDropdown.classList.add('hidden');
+            });
+        }
     });
 
     function playBellSound() {
