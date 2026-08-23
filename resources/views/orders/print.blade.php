@@ -16,7 +16,7 @@
 
         html,
         body {
-            width: 58mm;
+            width: 100%;
             margin: 0 auto;
             padding: 0;
         }
@@ -30,13 +30,17 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            padding: 20px 0;
         }
 
         .receipt-container {
-            width: 54mm;
-            max-width: 54mm;
+            width: 48mm;
+            max-width: 48mm;
             margin: 0 auto;
-            padding: 0;
+            padding: 4mm 2mm;
+            background: #fff; /* Warna kertas struk putih di layar */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
 
         .text-center { text-align: center; }
@@ -69,7 +73,7 @@
         }
 
         .label-col {
-            width: 55px;
+            width: 52px;
         }
 
         .w-full { width: 100%; }
@@ -83,15 +87,22 @@
             }
 
             .receipt-container {
-                width: 54mm;
-                max-width: 54mm;
+                width: 48mm;
+                max-width: 48mm;
                 margin: 0 auto;
-                padding: 0;
-            }
+                padding: 0 2mm;
+                background: none;
+                box-shadow: none;
+                margin-bottom: 0;            }
 
             .no-print {
                 display: none !important;
             }
+        }
+        
+        .btn-container {
+            width: 48mm;
+            max-width: 48mm;
         }
 
         .btn {
