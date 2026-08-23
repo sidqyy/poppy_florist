@@ -226,15 +226,17 @@
                         @endforeach
                     @endif
 
-                    @if($order->items && $order->items->count() > 0)
-                        @foreach($order->items as $item)
-                            @if($item->components && $item->components->count() > 0)
-                                <div style="margin-top: 5px; font-weight: bold;">[Komponen]:</div>
-                                @foreach($item->components as $comp)
-                                    <div>- {{ $comp->qty }}x {{ $comp->material_name }}</div>
-                                @endforeach
-                            @endif
-                        @endforeach
+                    @if(stripos($order->product_name ?? '', 'bunga papan') === false)
+                        @if($order->items && $order->items->count() > 0)
+                            @foreach($order->items as $item)
+                                @if($item->components && $item->components->count() > 0)
+                                    <div style="margin-top: 5px; font-weight: bold;">[Komponen]:</div>
+                                    @foreach($item->components as $comp)
+                                        <div>- {{ $comp->qty }}x {{ $comp->material_name }}</div>
+                                    @endforeach
+                                @endif
+                            @endforeach
+                        @endif
                     @endif
                 </div>
                 <table>
