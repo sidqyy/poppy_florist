@@ -690,6 +690,12 @@ public function addCustomToCart(Request $request)
                                 'subtotal' => $componentPrice * $qtyToDeduct
                             ]);
                         }
+                        
+                        // Auto-hide if it's an artificial flower
+                        if ($product->categories()->where('slug', 'bunga-artificial')->exists()) {
+                            $product->is_active = false;
+                            $product->save();
+                        }
                     }
                 } elseif ($item['type'] === 'product_variant') {
                     foreach ($item['components'] ?? [] as $comp) {
@@ -706,6 +712,12 @@ public function addCustomToCart(Request $request)
                             'unit_price' => $comp['unit_price'] ?? ($comp['price'] ?? 0),
                             'subtotal' => ($comp['unit_price'] ?? ($comp['price'] ?? 0)) * $qtyToDeduct
                         ]);
+                    }
+                    
+                    $product = Product::find($item['id']);
+                    if ($product && $product->categories()->where('slug', 'bunga-artificial')->exists()) {
+                        $product->is_active = false;
+                        $product->save();
                     }
                 } elseif ($item['type'] === 'material') {
                     $qtyToDeduct = $item['qty'];

@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Marketing 1', 'username' => 'marketing1', 'role' => 'marketing', 'password' => 'marketing123'],
             ['name' => 'Marketing 2', 'username' => 'marketing2', 'role' => 'marketing', 'password' => 'marketing123'],
             ['name' => 'Asisten Manajer', 'username' => 'asmen', 'role' => 'admin', 'password' => 'asmen123'],
+            ['name' => 'IT Support', 'username' => 'itsupport', 'role' => 'admin', 'password' => 'password'],
             ['name' => 'Florist 1', 'username' => 'florist1', 'role' => 'florist', 'password' => 'florist1'],
             ['name' => 'Florist 2', 'username' => 'florist2', 'role' => 'florist', 'password' => 'florist2'],
             ['name' => 'Florist 3', 'username' => 'florist3', 'role' => 'florist', 'password' => 'florist3'],
