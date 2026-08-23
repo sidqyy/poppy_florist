@@ -330,6 +330,11 @@
     }
 
     function calculateTotalPrice() {
+        const productNameInput = document.getElementById('product_name');
+        if (productNameInput && productNameInput.value.toLowerCase().includes('bunga papan')) {
+            return; // Jangan hitung/ubah harga dari komponen jika produk adalah Bunga Papan
+        }
+
         let total = 0;
         const rows = document.querySelectorAll('.component-row');
         
