@@ -102,7 +102,7 @@ class OrderController extends Controller
                 }
             }
 
-            $latestOrder = \App\Models\Order::where('order_number', 'LIKE', $prefix . '%')
+            $latestOrder = \App\Models\Order::where('order_number', 'REGEXP', '^' . $prefix . '[0-9]+$')
                 ->orderBy('id', 'desc')
                 ->lockForUpdate()
                 ->first();
@@ -248,13 +248,13 @@ class OrderController extends Controller
         $imagePath = null;
 
         if ($request->hasFile('reference_image')) {
-            $imagePath = $request->file('reference_image')->store('references', 'public');
+            $imagePath = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('reference_image'), 'references');
         }
 
         $paymentProofPath = null;
 
         if ($request->hasFile('payment_proof')) {
-            $paymentProofPath = $request->file('payment_proof')->store('payments', 'public');
+            $paymentProofPath = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('payment_proof'), 'payments');
         }
 
         $prefix = $request->order_prefix;
@@ -278,7 +278,7 @@ class OrderController extends Controller
                 ])->withInput();
             }
         } else {
-            $latestOrder = \App\Models\Order::where('order_number', 'LIKE', $prefix . '%')
+            $latestOrder = \App\Models\Order::where('order_number', 'REGEXP', '^' . $prefix . '[0-9]+$')
                 ->orderBy('id', 'desc')
                 ->lockForUpdate()
                 ->first();
@@ -516,7 +516,7 @@ class OrderController extends Controller
         $imagePath = $order->reference_image;
 
         if ($request->hasFile('reference_image')) {
-            $imagePath = $request->file('reference_image')->store('references', 'public');
+            $imagePath = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('reference_image'), 'references');
         }
 
         $deliveryFee = floatval($request->delivery_fee ?? 0);

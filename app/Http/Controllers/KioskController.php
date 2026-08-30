@@ -107,7 +107,7 @@ class KioskController extends Controller
 
         // Generate Order Number
         $prefix = 'ORD-';
-        $latestOrder = Order::where('order_number', 'LIKE', $prefix . '%')->orderBy('id', 'desc')->first();
+        $latestOrder = Order::where('order_number', 'REGEXP', '^' . $prefix . '[0-9]+$')->orderBy('id', 'desc')->first();
         if ($latestOrder) {
             $lastNumber = intval(substr($latestOrder->order_number, 4));
             $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);

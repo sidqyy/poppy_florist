@@ -606,7 +606,7 @@ public function addCustomToCart(Request $request)
                 }
             }
 
-            $latestOrder = Order::where('order_number', 'like', $prefix . '%')
+            $latestOrder = Order::where('order_number', 'REGEXP', '^' . $prefix . '[0-9]+$')
                 ->select('order_number')
                 ->orderByRaw("
                     CAST(
