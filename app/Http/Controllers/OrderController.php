@@ -259,29 +259,33 @@ class OrderController extends Controller
 
         $prefix = $request->order_prefix;
 
-        if ($prefix === 'PESW') {
-            $manualNumber = trim($request->manual_order_number);
+        DB::beginTransaction();
 
-            if (str_starts_with(strtoupper($manualNumber), 'PESW-')) {
-                $manualNumber = substr($manualNumber, 5);
-            } elseif (str_starts_with(strtoupper($manualNumber), 'PESW')) {
-                $manualNumber = substr($manualNumber, 4);
-            }
+        try {
+            if ($prefix === 'PESW') {
+                $manualNumber = trim($request->manual_order_number);
 
-            $orderNumber = 'PESW' . $manualNumber;
+                if (str_starts_with(strtoupper($manualNumber), 'PESW-')) {
+                    $manualNumber = substr($manualNumber, 5);
+                } elseif (str_starts_with(strtoupper($manualNumber), 'PESW')) {
+                    $manualNumber = substr($manualNumber, 4);
+                }
 
-            $exists = \App\Models\Order::where('order_number', $orderNumber)->exists();
+                $orderNumber = 'PESW' . $manualNumber;
 
-            if ($exists) {
-                return back()->withErrors([
-                    'manual_order_number' => 'Nomor order manual "' . $orderNumber . '" sudah terpakai di sistem. Harap gunakan nomor order unik dari website Anda.',
-                ])->withInput();
-            }
-        } else {
-            $latestOrder = \App\Models\Order::where('order_number', 'REGEXP', '^' . $prefix . '[0-9]+$')
-                ->orderBy('id', 'desc')
-                ->lockForUpdate()
-                ->first();
+                $exists = \App\Models\Order::where('order_number', $orderNumber)->exists();
+
+                if ($exists) {
+                    DB::rollBack();
+                    return back()->withErrors([
+                        'manual_order_number' => 'Nomor order manual "' . $orderNumber . '" sudah terpakai di sistem. Harap gunakan nomor order unik dari website Anda.',
+                    ])->withInput();
+                }
+            } else {
+                $latestOrder = \App\Models\Order::where('order_number', 'REGEXP', '^' . $prefix . '[0-9]+$')
+                    ->orderBy('id', 'desc')
+                    ->lockForUpdate()
+                    ->first();
 
             if ($latestOrder) {
                 $lastNumber = intval(substr($latestOrder->order_number, strlen($prefix)));
@@ -426,6 +430,13 @@ class OrderController extends Controller
         }
 
         \App\Services\AuditService::log('Membuat Pesanan Online', null, $order->toArray());
+
+        DB::commit();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
 
         try {
             $subscriptions = \App\Models\PushSubscription::all();

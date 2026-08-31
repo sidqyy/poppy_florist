@@ -11,7 +11,7 @@
     </div>
 </div>
 
-<form action="{{ route('orders.online.store') }}" method="POST" enctype="multipart/form-data">
+<form action="{{ route('orders.online.store') }}" method="POST" enctype="multipart/form-data" onsubmit="let btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.innerHTML = 'Memproses...';">
     @csrf
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
