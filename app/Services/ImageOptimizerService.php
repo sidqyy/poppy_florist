@@ -20,26 +20,39 @@ class ImageOptimizerService
      */
     public static function uploadAndOptimize(UploadedFile $file, string $directory, int $maxWidth = 1200, int $quality = 80): string
     {
-        // Init Image Manager
-        /** @var \Intervention\Image\ImageManager $manager */
-        $manager = new ImageManager(new Driver());
-        
-        // Read image from file
-        $image = $manager->decodePath($file->getRealPath());
-        
-        // Scale down if image is larger than maxWidth
-        $image->scaleDown(width: $maxWidth);
-        
-        // Encode to WebP format
-        $encoded = $image->encode(new \Intervention\Image\Encoders\WebpEncoder(quality: $quality));
-        
-        // Generate unique filename
-        $filename = uniqid() . '_' . time() . '.webp';
-        $path = $directory . '/' . $filename;
-        
-        // Save to public storage
-        Storage::disk('public')->put($path, (string) $encoded);
-        
-        return $path;
+        try {
+            // Init Image Manager
+            /** @var \Intervention\Image\ImageManager $manager */
+            $manager = new ImageManager(new Driver());
+            
+            // Read image from file
+            $image = $manager->decodePath($file->getRealPath());
+            
+            // Scale down if image is larger than maxWidth
+            if ($image->width() > $maxWidth) {
+                $image->scaleDown(width: $maxWidth);
+            }
+            
+            // Encode to WebP format
+            $encoded = $image->encode(new \Intervention\Image\Encoders\WebpEncoder(quality: $quality));
+            
+            // Generate unique filename
+            $filename = uniqid() . '_' . time() . '.webp';
+            $path = $directory . '/' . $filename;
+            
+            // Save to public storage
+            Storage::disk('public')->put($path, (string) $encoded);
+            
+            return $path;
+        } catch (\Throwable $e) {
+            // Fallback: Jika gagal optimize (misal format tidak didukung seperti PDF, HEIC), simpan aslinya
+            $extension = $file->getClientOriginalExtension() ?: 'jpg';
+            $filename = uniqid() . '_' . time() . '.' . $extension;
+            $path = $directory . '/' . $filename;
+            
+            Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
+            
+            return $path;
+        }
     }
 }
