@@ -278,7 +278,7 @@ class ProductController extends Controller
         }
     }
 
-    private function syncSizesAndVariants(\App\Models\Product $product, $sizes)
+    private function syncSizesAndVariants(\App\Models\Product $product, ?array $sizes)
     {
         if (!$sizes || !is_array($sizes)) {
             return;
@@ -347,27 +347,8 @@ class ProductController extends Controller
         }
     }
 
-    private function convertToWebpAndStore($file)
+    private function convertToWebpAndStore(\Illuminate\Http\UploadedFile $file)
     {
-        $image = @imagecreatefromstring(file_get_contents($file->getRealPath()));
-
-        if ($image === false) {
-            return $file->store('products', 'public');
-        }
-
-        $filename = 'products/' . uniqid() . '.webp';
-        $destinationPath = storage_path('app/public/' . $filename);
-
-        if (!file_exists(dirname($destinationPath))) {
-            @mkdir(dirname($destinationPath), 0755, true);
-        }
-
-        imagealphablending($image, false);
-        imagesavealpha($image, true);
-
-        imagewebp($image, $destinationPath, 80);
-        imagedestroy($image);
-
-        return $filename;
+        return \App\Services\ImageOptimizerService::uploadAndOptimize($file, 'products');
     }
 }

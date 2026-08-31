@@ -48,7 +48,7 @@ class MaterialController extends Controller
         }
 
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('materials', 'public');
+            $validated['image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('image'), 'materials');
         }
 
         \App\Models\Material::create($validated);
@@ -95,7 +95,7 @@ class MaterialController extends Controller
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($material->image);
             }
 
-            $validated['image'] = $request->file('image')->store('materials', 'public');
+            $validated['image'] = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('image'), 'materials');
         }
 
         $material->update($validated);

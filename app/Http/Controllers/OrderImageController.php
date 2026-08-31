@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 class OrderImageController extends Controller
 {
-    public function store(Request $request, $orderId)
+    public function store(Request $request, string $orderId)
     {
         $order = \App\Models\Order::findOrFail($orderId);
 
@@ -14,12 +14,11 @@ class OrderImageController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
             'notes' => 'nullable|string'
         ]);
-
-        $imagePath = $request->file('image')->store('order_results', 'public');
+        $imagePath = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('image'), 'order_results');
 
         \App\Models\OrderImage::create([
             'order_id' => $order->id,
-            'user_id' => auth()->id(),
+            'user_id' => \Illuminate\Support\Facades\Auth::id(),
             'image_path' => $imagePath,
             'notes' => $request->notes
         ]);
@@ -27,7 +26,7 @@ class OrderImageController extends Controller
         return back()->with('success', 'Foto hasil berhasil diunggah.');
     }
 
-    public function destroy($id)
+    public function destroy(string $id)
     {
         $image = \App\Models\OrderImage::findOrFail($id);
         

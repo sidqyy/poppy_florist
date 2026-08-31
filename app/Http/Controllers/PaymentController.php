@@ -19,12 +19,12 @@ class PaymentController extends Controller
 
         $imagePath = null;
         if ($request->hasFile('proof_image')) {
-            $imagePath = $request->file('proof_image')->store('payments', 'public');
+            $imagePath = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('proof_image'), 'payments');
         }
 
         \App\Models\Payment::create([
             'order_id' => $order->id,
-            'user_id' => auth()->id(),
+            'user_id' => \Illuminate\Support\Facades\Auth::id(),
             'amount' => $request->amount,
             'payment_method' => $request->payment_method,
             'proof_image' => $imagePath,
@@ -48,7 +48,7 @@ class PaymentController extends Controller
             $payment->update([
                 'status' => 'verified',
                 'verified_at' => now(),
-                'user_id' => auth()->id() // Update kasir yang memverifikasi
+                'user_id' => \Illuminate\Support\Facades\Auth::id() // Update kasir yang memverifikasi
             ]);
 
             // Cek status pesanan keseluruhan
@@ -67,7 +67,7 @@ class PaymentController extends Controller
                 
                 \App\Models\OrderHistory::create([
                     'order_id' => $order->id,
-                    'user_id' => auth()->id(),
+                    'user_id' => \Illuminate\Support\Facades\Auth::id(),
                     'old_status' => $order->status,
                     'new_status' => $order->status,
                     'action' => 'payment_update',
@@ -95,7 +95,7 @@ class PaymentController extends Controller
         ]);
 
         if ($request->hasFile('proof_image')) {
-            $imagePath = $request->file('proof_image')->store('payments', 'public');
+            $imagePath = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('proof_image'), 'payments');
             $payment->update(['proof_image' => $imagePath]);
             return back()->with('success', 'Bukti pembayaran berhasil diunggah susulan.');
         }
