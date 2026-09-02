@@ -45,6 +45,10 @@ class OrderController extends Controller
             $query->where('payment_status', $request->payment_status);
         }
 
+        if ($request->filled('prefix')) {
+            $query->where('order_number', 'like', $request->prefix . '%');
+        }
+
         $orders = $query->orderBy('created_at', 'desc')
             ->paginate(20)
             ->withQueryString();
@@ -716,6 +720,10 @@ class OrderController extends Controller
 
         if ($request->filled('payment_status')) {
             $query->where('payment_status', $request->payment_status);
+        }
+
+        if ($request->filled('prefix')) {
+            $query->where('order_number', 'like', $request->prefix . '%');
         }
 
         $orders = $query->orderBy('created_at', 'desc')->get();

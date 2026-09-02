@@ -19,6 +19,16 @@
             @endif
             
             <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Kode Pesanan</label>
+                <select name="prefix" class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-florist-200 min-w-[120px]">
+                    <option value="">Semua Kode</option>
+                    <option value="PES" {{ request('prefix') == 'PES' ? 'selected' : '' }}>PES (Kasir)</option>
+                    <option value="PJL" {{ request('prefix') == 'PJL' ? 'selected' : '' }}>PJL (Online)</option>
+                    <option value="KSK" {{ request('prefix') == 'KSK' ? 'selected' : '' }}>KSK (Kiosk)</option>
+                </select>
+            </div>
+
+            <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Tanggal Pesanan</label>
                 <input type="date" name="date" value="{{ request('date') }}" class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-florist-200">
             </div>
@@ -52,7 +62,7 @@
                     Terapkan Filter
                 </button>
 
-                @if(request('q') || request('date') || request('status') || request('payment_status'))
+                @if(request('q') || request('date') || request('status') || request('payment_status') || request('prefix'))
                     <a href="{{ route('orders.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 font-bold rounded-lg hover:bg-gray-200 transition-colors text-sm">
                         Reset
                     </a>
@@ -173,7 +183,7 @@
                     <td colspan="7" class="py-12 text-center text-gray-400">
                         <i class="fa-solid fa-search text-4xl mb-3 text-gray-300"></i>
 
-                        @if(request('q') || request('date') || request('status') || request('payment_status'))
+                        @if(request('q') || request('date') || request('status') || request('payment_status') || request('prefix'))
                             <p>Pencarian tidak menemukan hasil apapun.</p>
                             <a href="{{ route('orders.index') }}" class="text-florist-500 hover:underline mt-2 inline-block text-sm">
                                 Hapus Filter
