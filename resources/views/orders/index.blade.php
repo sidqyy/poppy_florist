@@ -60,11 +60,11 @@
             </div>
 
             @if(in_array(auth()->user()->role, ['admin','asmen','it support']))
-            <a href="{{ route('admin.orders.export.excel', request()->query()) }}"
+            <button type="submit" formaction="{{ route('admin.orders.export.excel') }}"
                 class="px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-colors text-sm shadow-sm">
                 <i class="fa-solid fa-file-excel mr-1"></i>
                 Export Excel
-            </a>
+            </button>
             @endif
         </form>
     </div>

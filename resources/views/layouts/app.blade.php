@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Poppy Florist System')</title>
+    <link rel="icon" type="image/x-icon" href="{{ asset('fav.ico') }}">
     <!-- Tailwind CSS (CDN for quick setup) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
