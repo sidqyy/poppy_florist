@@ -67,7 +67,7 @@
         @elseif($order->payment_status == 'paid_tf')
             LUNAS TF
         @else
-            LUNAS
+            LUNAS CASH
         @endif
     </span>
 @elseif($order->payment_status == 'dp')
@@ -373,7 +373,7 @@
 
     } elseif ($order->payment_status == 'paid') {
 
-        $paymentStatusText = 'LUNAS';
+        $paymentStatusText = 'LUNAS CASH';
 
     } elseif ($order->payment_status == 'dp') {
 

@@ -128,7 +128,7 @@
                             </span>
                         @elseif($order->payment_status == 'paid')
                             <span class="px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-bold">
-                                LUNAS
+                                LUNAS CASH
                             </span>
                         @elseif($order->payment_status == 'dp')
                             <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-bold">

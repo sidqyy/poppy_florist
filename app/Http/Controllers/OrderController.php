@@ -15,7 +15,7 @@ class OrderController extends Controller
             'paid_tf' => 'LUNAS TF',
             'dp' => 'DP',
             'unpaid' => 'BELUM LUNAS',
-            'paid' => 'LUNAS',
+            'paid' => 'LUNAS CASH',
             default => strtoupper($status ?? '-'),
         };
     }

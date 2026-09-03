@@ -644,7 +644,7 @@ public function addCustomToCart(Request $request)
                 'scheduled_at' => $request->scheduled_at,
                 'notes' => $request->notes,
                 'total_amount' => $totalAmount,
-                'payment_status' => 'paid',
+                'payment_status' => $request->payment_method == 'qris' ? 'paid_qris' : ($request->payment_method == 'transfer' ? 'paid_tf' : 'paid'),
                 'status' => 'processing',
                 'source' => 'offline',
                 'handled_by' => session('pos_florist'),
