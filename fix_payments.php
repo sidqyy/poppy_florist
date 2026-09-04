@@ -10,13 +10,7 @@ use App\Models\Payment;
 
 echo "--- MEMULAI UPDATE STATUS PEMBAYARAN PESANAN LAMA ---\n";
 
-$orders = Order::where('payment_status', 'paid')
-    ->where(function($q) {
-        $q->where('code', 'like', 'PES%')
-          ->orWhere('code', 'like', 'PJL%')
-          ->orWhere('code', 'like', 'KSK%');
-    })
-    ->get();
+$orders = Order::where('payment_status', 'paid')->get();
 
 $countQris = 0;
 $countTf = 0;
