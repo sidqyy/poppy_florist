@@ -22,9 +22,11 @@
                 <label class="block text-xs font-medium text-gray-500 mb-1">Kode Pesanan</label>
                 <select name="prefix" class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-florist-200 min-w-[120px]">
                     <option value="">Semua Kode</option>
-                    <option value="PES" {{ request('prefix') == 'PES' ? 'selected' : '' }}>PES (Kasir)</option>
-                    <option value="PJL" {{ request('prefix') == 'PJL' ? 'selected' : '' }}>PJL (Online)</option>
-                    <option value="KSK" {{ request('prefix') == 'KSK' ? 'selected' : '' }}>KSK (Kiosk)</option>
+                    <option value="PES" {{ request('prefix') == 'PES' ? 'selected' : '' }}>PES</option>
+                    <option value="PJL" {{ request('prefix') == 'PJL' ? 'selected' : '' }}>PJL</option>
+                    <option value="PESM" {{ request('prefix') == 'PESM' ? 'selected' : '' }}>PESM</option>
+                    <option value="PESW" {{ request('prefix') == 'PESW' ? 'selected' : '' }}>PESW</option>
+                    <option value="KSK" {{ request('prefix') == 'KSK' ? 'selected' : '' }}>KSK</option>
                 </select>
             </div>
 
