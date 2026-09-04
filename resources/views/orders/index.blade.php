@@ -26,7 +26,6 @@
                     <option value="PJL" {{ request('prefix') == 'PJL' ? 'selected' : '' }}>PJL</option>
                     <option value="PESM" {{ request('prefix') == 'PESM' ? 'selected' : '' }}>PESM</option>
                     <option value="PESW" {{ request('prefix') == 'PESW' ? 'selected' : '' }}>PESW</option>
-                    <option value="KSK" {{ request('prefix') == 'KSK' ? 'selected' : '' }}>KSK</option>
                 </select>
             </div>
 
