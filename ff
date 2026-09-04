@@ -1,0 +1,23 @@
+PS C:\laragon\www\poppy_florist> php fix_payments.php
+--- MEMULAI UPDATE STATUS PEMBAYARAN PESANAN LAMA ---
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[42S22]: Column not found: 1054 Unknown column 'code' in 'where clause' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: poppy_florist, SQL: select * from `orders` where `payment_status` = paid and (`code` like PES% or `code` like PJL% or `code` like KSK%))
+
+  at vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+    837▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    838▕                 ? UniqueConstraintViolationException::class
+    839▕                 : QueryException::class;
+    840▕ 
+  ➜ 841▕             $exception = new $exceptionType(
+    842▕                 $this->getNameWithReadWriteType(),
+    843▕                 $query,
+    844▕                 $this->prepareBindings($bindings),
+    845▕                 $e,
+
+  1   vendor\laravel\framework\src\Illuminate\Database\Connection.php:421
+      PDOException::("SQLSTATE[42S22]: Column not found: 1054 Unknown column 'code' in 'where clause'")
+
+  2   vendor\laravel\framework\src\Illuminate\Database\Connection.php:421
+      PDO::prepare("select * from `orders` where `payment_status` = ? and (`code` like ? or `code` like ? or `code` like ?)")
