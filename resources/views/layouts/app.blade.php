@@ -60,18 +60,18 @@
         }
     </style>
 </head>
-<body class="text-gray-800 antialiased flex h-[100dvh] overflow-hidden bg-slate-50">
+<body class="text-gray-800 antialiased flex flex-col md:flex-row min-h-screen md:h-[100dvh] md:overflow-hidden bg-slate-50">
 
     <!-- Sidebar -->
     @include('layouts.sidebar')
 
     <!-- Main Content -->
-    <div class="flex-1 flex flex-col h-[100dvh] min-h-0 overflow-hidden bg-slate-50">
+    <div class="flex-1 flex flex-col min-h-screen md:h-[100dvh] md:min-h-0 md:overflow-hidden bg-slate-50">
         <!-- Navbar -->
         @include('layouts.navbar')
 
         <!-- Page Content -->
-        <main class="flex-1 min-h-0 overflow-x-hidden overflow-y-auto mobile-touch-scroll bg-slate-50 p-4 md:p-6 pb-24">
+        <main class="flex-1 overflow-x-hidden overflow-y-auto md:min-h-0 mobile-touch-scroll bg-slate-50 p-4 md:p-6 pb-24">
             @if(session('success'))
             <div class="mb-4 p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 flex items-center gap-3 shadow-sm">
                 <i class="fa-solid fa-circle-check text-green-500"></i>

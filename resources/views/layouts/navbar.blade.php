@@ -1,4 +1,4 @@
-<header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-10 flex-shrink-0 border-b border-florist-100">
+<header class="h-16 bg-white shadow-sm flex items-center justify-between px-4 md:px-6 z-30 shrink-0 border-b border-florist-100 sticky top-0 md:static">
     <div class="flex items-center gap-4">
         <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-florist-500 transition-colors">
             <i class="fa-solid fa-bars text-xl"></i>
