@@ -55,9 +55,14 @@
 
         body {
             background-color: #fdf2f8;
-            overscroll-behavior-y: none;
             user-select: none;
             -webkit-user-select: none;
+        }
+
+        .mobile-touch-scroll {
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
+            overscroll-behavior-y: contain;
         }
 
         ::-webkit-scrollbar {

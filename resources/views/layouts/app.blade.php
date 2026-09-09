@@ -52,6 +52,12 @@
             box-shadow: 0 10px 15px -3px rgba(249, 168, 212, 0.2), 0 4px 6px -2px rgba(249, 168, 212, 0.1);
             transform: translateY(-2px);
         }
+        /* Mobile Touch Scroll Fix */
+        .mobile-touch-scroll {
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
+            overscroll-behavior-y: contain;
+        }
     </style>
 </head>
 <body class="text-gray-800 antialiased flex h-[100dvh] overflow-hidden bg-slate-50">
@@ -60,12 +66,12 @@
     @include('layouts.sidebar')
 
     <!-- Main Content -->
-    <div class="flex-1 flex flex-col h-[100dvh] overflow-hidden bg-slate-50">
+    <div class="flex-1 flex flex-col h-[100dvh] min-h-0 overflow-hidden bg-slate-50">
         <!-- Navbar -->
         @include('layouts.navbar')
 
         <!-- Page Content -->
-        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6 pb-20">
+        <main class="flex-1 min-h-0 overflow-x-hidden overflow-y-auto mobile-touch-scroll bg-slate-50 p-4 md:p-6 pb-24">
             @if(session('success'))
             <div class="mb-4 p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 flex items-center gap-3 shadow-sm">
                 <i class="fa-solid fa-circle-check text-green-500"></i>
