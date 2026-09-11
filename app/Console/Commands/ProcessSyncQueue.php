@@ -2,10 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\SyncLog;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class ProcessSyncQueue extends Command
 {
@@ -29,8 +28,9 @@ class ProcessSyncQueue extends Command
     public function handle()
     {
         // 1. Cek Koneksi Internet (Ping Google DNS)
-        if (!$this->isOnline()) {
+        if (! $this->isOnline()) {
             $this->warn('Internet terputus. Sinkronisasi ditunda.');
+
             return Command::SUCCESS;
         }
 
@@ -38,12 +38,13 @@ class ProcessSyncQueue extends Command
 
         // 2. Ambil antrian pending (Maks 50 per batch untuk efisiensi)
         $pendingLogs = SyncLog::where('status', 'pending')
-                              ->where('retry_count', '<', 5)
-                              ->limit(50)
-                              ->get();
+            ->where('retry_count', '<', 5)
+            ->limit(50)
+            ->get();
 
         if ($pendingLogs->isEmpty()) {
             $this->info('Tidak ada antrian sinkronisasi.');
+
             return Command::SUCCESS;
         }
 
@@ -67,9 +68,9 @@ class ProcessSyncQueue extends Command
                 $log->update([
                     'status' => 'failed',
                     'retry_count' => $log->retry_count + 1,
-                    'error_message' => $e->getMessage()
+                    'error_message' => $e->getMessage(),
                 ]);
-                $this->error("Gagal memproses log ID {$log->id}: " . $e->getMessage());
+                $this->error("Gagal memproses log ID {$log->id}: ".$e->getMessage());
             }
         }
 
@@ -78,11 +79,13 @@ class ProcessSyncQueue extends Command
 
     private function isOnline()
     {
-        $connected = @fsockopen("www.google.com", 80); 
-        if ($connected){
+        $connected = @fsockopen('www.google.com', 80);
+        if ($connected) {
             fclose($connected);
+
             return true;
         }
+
         return false;
     }
 
@@ -90,9 +93,10 @@ class ProcessSyncQueue extends Command
     {
         // Dummy simulasi API WhatsApp Gateway
         // Http::post('https://api.whatsapp-provider.com/send', $payload);
-        
+
         // Simulasikan delay API
-        usleep(500000); 
+        usleep(500000);
+
         return true;
     }
 

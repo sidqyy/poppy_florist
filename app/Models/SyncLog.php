@@ -14,7 +14,7 @@ class SyncLog extends Model
         'payload',
         'status',
         'retry_count',
-        'error_message'
+        'error_message',
     ];
 
     protected $casts = [

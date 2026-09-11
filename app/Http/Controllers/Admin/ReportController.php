@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\OrderItemComponent;
 
 class ReportController extends Controller
 {
@@ -20,7 +18,7 @@ class ReportController extends Controller
 
         // Base Query (Hanya pesanan yang tidak dibatalkan)
         $baseQuery = Order::whereBetween('created_at', [$startDate, $endDate])
-                          ->where('status', '!=', 'cancelled');
+            ->where('status', '!=', 'cancelled');
 
         // 1. Ringkasan Utama
         $totalRevenue = (clone $baseQuery)->sum('total_amount');
@@ -95,22 +93,22 @@ class ReportController extends Controller
 
     private function exportCsv($data)
     {
-        $fileName = 'Laporan_PoppyFlorist_' . $data['startDate']->format('Ymd') . '-' . $data['endDate']->format('Ymd') . '.csv';
+        $fileName = 'Laporan_PoppyFlorist_'.$data['startDate']->format('Ymd').'-'.$data['endDate']->format('Ymd').'.csv';
 
-        $headers = array(
-            "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=$fileName",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
-        );
+        $headers = [
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=$fileName",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ];
 
         $columns = ['Tanggal', 'Total Order', 'Pendapatan (Rp)'];
 
-        $callback = function() use($data, $columns) {
+        $callback = function () use ($data, $columns) {
             $file = fopen('php://output', 'w');
             fputcsv($file, ['RINGKASAN LAPORAN']);
-            fputcsv($file, ['Periode', $data['startDate']->format('d/m/Y') . ' - ' . $data['endDate']->format('d/m/Y')]);
+            fputcsv($file, ['Periode', $data['startDate']->format('d/m/Y').' - '.$data['endDate']->format('d/m/Y')]);
             fputcsv($file, ['Total Pendapatan', $data['totalRevenue']]);
             fputcsv($file, ['Total Pesanan', $data['totalOrders']]);
             fputcsv($file, ['Total Ongkir', $data['totalDeliveryFee']]);
@@ -121,12 +119,12 @@ class ReportController extends Controller
             fputcsv($file, $columns);
 
             foreach ($data['dailySales'] as $sale) {
-                $row['Tanggal']  = $sale->date;
+                $row['Tanggal'] = $sale->date;
                 $row['Total Order'] = $sale->total_orders;
-                $row['Pendapatan']  = $sale->revenue;
-                fputcsv($file, array($row['Tanggal'], $row['Total Order'], $row['Pendapatan']));
+                $row['Pendapatan'] = $sale->revenue;
+                fputcsv($file, [$row['Tanggal'], $row['Total Order'], $row['Pendapatan']]);
             }
-            
+
             fputcsv($file, []);
             fputcsv($file, ['PRODUK TERLARIS']);
             fputcsv($file, ['Nama Produk', 'Terjual', 'Subtotal Pendapatan']);

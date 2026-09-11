@@ -13,7 +13,7 @@ class OrderItemComponent extends Model
         'color',
         'qty',
         'unit_price',
-        'subtotal'
+        'subtotal',
     ];
 
     public function orderItem()

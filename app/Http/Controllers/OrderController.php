@@ -2,9 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Material;
+use App\Models\Order;
+use App\Models\OrderHistory;
+use App\Models\OrderItem;
+use App\Models\OrderItemComponent;
+use App\Models\Payment;
+use App\Models\Product;
+use App\Models\Promo;
+use App\Models\PromoUsage;
+use App\Models\PushSubscription;
+use App\Models\Setting;
+use App\Models\StockMutation;
+use App\Services\AuditService;
+use App\Services\ImageOptimizerService;
+use App\Services\StockService;
+use App\Services\WhatsAppService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Minishlink\WebPush\Subscription;
+use Minishlink\WebPush\WebPush;
 
 class OrderController extends Controller
 {
@@ -22,7 +41,7 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = \App\Models\Order::with('user');
+        $query = Order::with('user');
 
         if ($request->filled('q')) {
             $q = $request->q;
@@ -46,7 +65,7 @@ class OrderController extends Controller
         }
 
         if ($request->filled('prefix')) {
-            $query->where('order_number', 'like', $request->prefix . '%');
+            $query->where('order_number', 'like', $request->prefix.'%');
         }
 
         $orders = $query->orderBy('created_at', 'desc')
@@ -58,12 +77,12 @@ class OrderController extends Controller
 
     public function checkout(int $product_id)
     {
-        $product = \App\Models\Product::with('components.material')->findOrFail($product_id);
+        $product = Product::with('components.material')->findOrFail($product_id);
 
         return view('orders.checkout', compact('product'));
     }
 
-    public function store(Request $request, \App\Services\StockService $stockService)
+    public function store(Request $request, StockService $stockService)
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
@@ -76,7 +95,7 @@ class OrderController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $product = \App\Models\Product::with('components.material')->findOrFail($request->product_id);
+        $product = Product::with('components.material')->findOrFail($request->product_id);
 
         DB::beginTransaction();
 
@@ -85,7 +104,7 @@ class OrderController extends Controller
             $promoId = $request->promo_id;
 
             if ($promoId) {
-                $promo = \App\Models\Promo::find($promoId);
+                $promo = Promo::find($promoId);
 
                 if ($promo && $promo->is_active && $promo->used_count < ($promo->max_uses ?? PHP_INT_MAX)) {
                     if ($product->total_price >= $promo->min_purchase) {
@@ -101,12 +120,12 @@ class OrderController extends Controller
             $prefix = 'PJLM';
 
             if ($request->scheduled_at) {
-                if (\Carbon\Carbon::parse($request->scheduled_at)->isAfter(now()->addHours(3))) {
+                if (Carbon::parse($request->scheduled_at)->isAfter(now()->addHours(3))) {
                     $prefix = 'PESM';
                 }
             }
 
-            $latestOrder = \App\Models\Order::where('order_number', 'REGEXP', '^' . $prefix . '[0-9]+$')
+            $latestOrder = Order::where('order_number', 'REGEXP', '^'.$prefix.'[0-9]+$')
                 ->orderBy('id', 'desc')
                 ->lockForUpdate()
                 ->first();
@@ -118,11 +137,11 @@ class OrderController extends Controller
                 $newNumber = '001';
             }
 
-            $orderNumber = $prefix . $newNumber;
+            $orderNumber = $prefix.$newNumber;
             $deliveryFee = floatval($request->delivery_fee ?? 0);
             $totalAmount = max(0, $product->total_price + $deliveryFee - $discount);
 
-            $order = \App\Models\Order::create([
+            $order = Order::create([
                 'order_number' => $orderNumber,
                 'customer_name' => $request->customer_name,
                 'customer_phone' => $request->customer_phone,
@@ -144,7 +163,7 @@ class OrderController extends Controller
             ]);
 
             if ($promoId && $discount > 0) {
-                \App\Models\PromoUsage::create([
+                PromoUsage::create([
                     'promo_id' => $promoId,
                     'order_id' => $order->id,
                     'discount_amount' => $discount,
@@ -153,7 +172,7 @@ class OrderController extends Controller
                 $promo->increment('used_count');
             }
 
-            $orderItem = \App\Models\OrderItem::create([
+            $orderItem = OrderItem::create([
                 'order_id' => $order->id,
                 'product_id' => $product->id,
                 'product_name' => $product->name,
@@ -163,7 +182,7 @@ class OrderController extends Controller
             ]);
 
             foreach ($product->components as $comp) {
-                \App\Models\OrderItemComponent::create([
+                OrderItemComponent::create([
                     'order_item_id' => $orderItem->id,
                     'material_id' => $comp->material->id,
                     'material_name' => $comp->material->name,
@@ -175,26 +194,26 @@ class OrderController extends Controller
 
             DB::commit();
 
-            \App\Services\AuditService::log('Membuat Pesanan Offline', null, $order->toArray());
+            AuditService::log('Membuat Pesanan Offline', null, $order->toArray());
 
             return redirect()->route('orders.show', $order->id)->with('success', 'Pesanan berhasil dibuat!');
         } catch (\Exception $e) {
             DB::rollBack();
 
             return back()->withErrors([
-                'error' => 'Gagal membuat pesanan: ' . $e->getMessage(),
+                'error' => 'Gagal membuat pesanan: '.$e->getMessage(),
             ])->withInput();
         }
     }
 
     public function show(string $id)
     {
-        $order = \App\Models\Order::with(['items.components', 'user'])->findOrFail($id);
+        $order = Order::with(['items.components', 'user'])->findOrFail($id);
 
         $waLinks = [];
 
-        if (!empty($order->customer_phone)) {
-            $waService = new \App\Services\WhatsAppService();
+        if (! empty($order->customer_phone)) {
+            $waService = new WhatsAppService;
 
             $waLinks = [
                 'received' => $waService->getWaLink($order, 'received'),
@@ -211,11 +230,11 @@ class OrderController extends Controller
 
     public function createOnline()
     {
-        $materials = \App\Models\Material::where('is_active', true)
+        $materials = Material::where('is_active', true)
             ->orderBy('name')
             ->get();
 
-        $products = \App\Models\Product::with('sizes.variants')
+        $products = Product::with('sizes.variants')
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -252,13 +271,13 @@ class OrderController extends Controller
         $imagePath = null;
 
         if ($request->hasFile('reference_image')) {
-            $imagePath = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('reference_image'), 'references');
+            $imagePath = ImageOptimizerService::uploadAndOptimize($request->file('reference_image'), 'references');
         }
 
         $paymentProofPath = null;
 
         if ($request->hasFile('payment_proof')) {
-            $paymentProofPath = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('payment_proof'), 'payments');
+            $paymentProofPath = ImageOptimizerService::uploadAndOptimize($request->file('payment_proof'), 'payments');
         }
 
         $prefix = $request->order_prefix;
@@ -275,167 +294,168 @@ class OrderController extends Controller
                     $manualNumber = substr($manualNumber, 4);
                 }
 
-                $orderNumber = 'PESW' . $manualNumber;
+                $orderNumber = 'PESW'.$manualNumber;
 
-                $exists = \App\Models\Order::where('order_number', $orderNumber)->exists();
+                $exists = Order::where('order_number', $orderNumber)->exists();
 
                 if ($exists) {
                     DB::rollBack();
+
                     return back()->withErrors([
-                        'manual_order_number' => 'Nomor order manual "' . $orderNumber . '" sudah terpakai di sistem. Harap gunakan nomor order unik dari website Anda.',
+                        'manual_order_number' => 'Nomor order manual "'.$orderNumber.'" sudah terpakai di sistem. Harap gunakan nomor order unik dari website Anda.',
                     ])->withInput();
                 }
             } else {
-                $latestOrder = \App\Models\Order::where('order_number', 'REGEXP', '^' . $prefix . '[0-9]+$')
+                $latestOrder = Order::where('order_number', 'REGEXP', '^'.$prefix.'[0-9]+$')
                     ->orderBy('id', 'desc')
                     ->lockForUpdate()
                     ->first();
 
-            if ($latestOrder) {
-                $lastNumber = intval(substr($latestOrder->order_number, strlen($prefix)));
-                $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-            } else {
-                $newNumber = '001';
+                if ($latestOrder) {
+                    $lastNumber = intval(substr($latestOrder->order_number, strlen($prefix)));
+                    $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+                } else {
+                    $newNumber = '001';
+                }
+
+                $orderNumber = $prefix.$newNumber;
             }
 
-            $orderNumber = $prefix . $newNumber;
-        }
+            $deliveryFee = floatval($request->delivery_fee ?? 0);
+            $totalAmount = floatval($request->total_price ?? 0) + $deliveryFee;
 
-        $deliveryFee = floatval($request->delivery_fee ?? 0);
-        $totalAmount = floatval($request->total_price ?? 0) + $deliveryFee;
+            $discount = floatval($request->discount ?? 0);
+            $promoId = $request->promo_id;
 
-        $discount = floatval($request->discount ?? 0);
-        $promoId = $request->promo_id;
+            if ($promoId) {
+                $promo = Promo::find($promoId);
 
-        if ($promoId) {
-            $promo = \App\Models\Promo::find($promoId);
-
-            if ($promo && $promo->is_active && $promo->used_count < ($promo->max_uses ?? PHP_INT_MAX)) {
-                if ($totalAmount >= $promo->min_purchase) {
-                    if ($promo->type === 'percentage') {
-                        $discount = ($promo->value / 100) * $totalAmount;
-                    } else {
-                        $discount = $promo->value;
+                if ($promo && $promo->is_active && $promo->used_count < ($promo->max_uses ?? PHP_INT_MAX)) {
+                    if ($totalAmount >= $promo->min_purchase) {
+                        if ($promo->type === 'percentage') {
+                            $discount = ($promo->value / 100) * $totalAmount;
+                        } else {
+                            $discount = $promo->value;
+                        }
                     }
                 }
             }
-        }
 
-        $finalTotalAmount = max(0, $totalAmount - $discount);
+            $finalTotalAmount = max(0, $totalAmount - $discount);
 
-        $order = \App\Models\Order::create([
-            'order_number' => $orderNumber,
-            'customer_name' => $request->customer_name,
-            'customer_phone' => $request->customer_phone,
-            'external_id' => null,
-            'recipient_name' => $request->recipient_name,
-            'recipient_phone' => $request->recipient_phone,
-            'delivery_method' => $request->delivery_method,
-            'delivery_address' => $request->delivery_address,
-            'delivery_distance' => $request->delivery_distance,
-            'delivery_fee' => $deliveryFee,
-            'delivery_lat' => $request->delivery_lat,
-            'delivery_lng' => $request->delivery_lng,
-            'discount' => $discount,
-            'scheduled_at' => $request->scheduled_at,
-            'status' => 'pending',
-            'payment_status' => $request->payment_status,
-            'payment_proof' => $paymentProofPath,
-            'total_amount' => $finalTotalAmount,
-            'budget' => 0,
-            'reference_image' => $imagePath,
-            'product_name' => $request->product_name,
-            'greeting_card' => $request->greeting_card,
-            'notes' => $request->notes,
-            'source' => 'online',
-            'is_urgent' => $request->has('is_urgent'),
-            'estimated_time' => $request->estimated_time,
-            'user_id' => Auth::id(),
-        ]);
+            $order = Order::create([
+                'order_number' => $orderNumber,
+                'customer_name' => $request->customer_name,
+                'customer_phone' => $request->customer_phone,
+                'external_id' => null,
+                'recipient_name' => $request->recipient_name,
+                'recipient_phone' => $request->recipient_phone,
+                'delivery_method' => $request->delivery_method,
+                'delivery_address' => $request->delivery_address,
+                'delivery_distance' => $request->delivery_distance,
+                'delivery_fee' => $deliveryFee,
+                'delivery_lat' => $request->delivery_lat,
+                'delivery_lng' => $request->delivery_lng,
+                'discount' => $discount,
+                'scheduled_at' => $request->scheduled_at,
+                'status' => 'pending',
+                'payment_status' => $request->payment_status,
+                'payment_proof' => $paymentProofPath,
+                'total_amount' => $finalTotalAmount,
+                'budget' => 0,
+                'reference_image' => $imagePath,
+                'product_name' => $request->product_name,
+                'greeting_card' => $request->greeting_card,
+                'notes' => $request->notes,
+                'source' => 'online',
+                'is_urgent' => $request->has('is_urgent'),
+                'estimated_time' => $request->estimated_time,
+                'user_id' => Auth::id(),
+            ]);
 
-        $orderItem = \App\Models\OrderItem::create([
-            'order_id' => $order->id,
-            'product_id' => null,
-            'product_name' => $request->product_name,
-            'qty' => 1,
-            'price' => $finalTotalAmount,
-            'subtotal' => $finalTotalAmount,
-        ]);
+            $orderItem = OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => null,
+                'product_name' => $request->product_name,
+                'qty' => 1,
+                'price' => $finalTotalAmount,
+                'subtotal' => $finalTotalAmount,
+            ]);
 
-        if ($request->has('components')) {
-            foreach ($request->components as $component) {
-                if (empty($component['material_id']) || empty($component['qty'])) {
-                    continue;
+            if ($request->has('components')) {
+                foreach ($request->components as $component) {
+                    if (empty($component['material_id']) || empty($component['qty'])) {
+                        continue;
+                    }
+
+                    $material = Material::find($component['material_id']);
+
+                    if (! $material) {
+                        continue;
+                    }
+
+                    $priceType = $component['price_type'] ?? 'arrangement';
+
+                    if ($priceType === 'stem') {
+                        $unitPrice = $material->price_stem > 0
+                            ? $material->price_stem
+                            : $material->price;
+                    } else {
+                        $unitPrice = $material->price_arrangement > 0
+                            ? $material->price_arrangement
+                            : $material->price;
+                    }
+
+                    $color = null;
+
+                    if ($material->type === 'flower_fresh' && ! empty($component['color'])) {
+                        $color = trim($component['color']);
+                    }
+
+                    OrderItemComponent::create([
+                        'order_item_id' => $orderItem->id,
+                        'material_id' => $material->id,
+                        'material_name' => $material->name,
+                        'color' => $color,
+                        'qty' => $component['qty'],
+                        'unit_price' => $unitPrice,
+                        'subtotal' => $unitPrice * $component['qty'],
+                    ]);
                 }
+            }
 
-                $material = \App\Models\Material::find($component['material_id']);
+            $initialPayment = floatval($request->initial_payment ?? 0);
 
-                if (!$material) {
-                    continue;
-                }
+            if (in_array($request->payment_status, ['paid_qris', 'paid_tf'])) {
+                $initialPayment = $finalTotalAmount;
+            }
 
-                $priceType = $component['price_type'] ?? 'arrangement';
-
-                if ($priceType === 'stem') {
-                    $unitPrice = $material->price_stem > 0
-                        ? $material->price_stem
-                        : $material->price;
-                } else {
-                    $unitPrice = $material->price_arrangement > 0
-                        ? $material->price_arrangement
-                        : $material->price;
-                }
-
-                $color = null;
-
-                if ($material->type === 'flower_fresh' && !empty($component['color'])) {
-                    $color = trim($component['color']);
-                }
-
-                \App\Models\OrderItemComponent::create([
-                    'order_item_id' => $orderItem->id,
-                    'material_id' => $material->id,
-                    'material_name' => $material->name,
-                    'color' => $color,
-                    'qty' => $component['qty'],
-                    'unit_price' => $unitPrice,
-                    'subtotal' => $unitPrice * $component['qty'],
+            if ($initialPayment > 0) {
+                Payment::create([
+                    'order_id' => $order->id,
+                    'user_id' => Auth::id(),
+                    'amount' => $initialPayment,
+                    'payment_method' => $request->payment_status === 'paid_qris' ? 'QRIS' : 'Transfer',
+                    'proof_image' => $paymentProofPath,
+                    'status' => 'verified',
+                    'verified_at' => now(),
+                    'notes' => 'Pembayaran awal via Form Marketing',
                 ]);
             }
-        }
 
-        $initialPayment = floatval($request->initial_payment ?? 0);
+            if ($promoId && $discount > 0) {
+                PromoUsage::create([
+                    'promo_id' => $promoId,
+                    'order_id' => $order->id,
+                    'discount_amount' => $discount,
+                ]);
 
-        if (in_array($request->payment_status, ['paid_qris', 'paid_tf'])) {
-            $initialPayment = $finalTotalAmount;
-        }
+                $promo->increment('used_count');
+            }
 
-        if ($initialPayment > 0) {
-            \App\Models\Payment::create([
-                'order_id' => $order->id,
-                'user_id' => Auth::id(),
-                'amount' => $initialPayment,
-                'payment_method' => $request->payment_status === 'paid_qris' ? 'QRIS' : 'Transfer',
-                'proof_image' => $paymentProofPath,
-                'status' => 'verified',
-                'verified_at' => now(),
-                'notes' => 'Pembayaran awal via Form Marketing',
-            ]);
-        }
+            AuditService::log('Membuat Pesanan Online', null, $order->toArray());
 
-        if ($promoId && $discount > 0) {
-            \App\Models\PromoUsage::create([
-                'promo_id' => $promoId,
-                'order_id' => $order->id,
-                'discount_amount' => $discount,
-            ]);
-
-            $promo->increment('used_count');
-        }
-
-        \App\Services\AuditService::log('Membuat Pesanan Online', null, $order->toArray());
-
-        DB::commit();
+            DB::commit();
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -443,22 +463,22 @@ class OrderController extends Controller
         }
 
         try {
-            $subscriptions = \App\Models\PushSubscription::all();
+            $subscriptions = PushSubscription::all();
 
             if (count($subscriptions) > 0 && env('VAPID_PUBLIC_KEY')) {
                 $auth = [
                     'VAPID' => [
-                        'subject' => 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'),
+                        'subject' => 'https://'.($_SERVER['HTTP_HOST'] ?? 'localhost'),
                         'publicKey' => env('VAPID_PUBLIC_KEY'),
                         'privateKey' => env('VAPID_PRIVATE_KEY'),
                     ],
                 ];
 
-                $webPush = new \Minishlink\WebPush\WebPush($auth);
+                $webPush = new WebPush($auth);
 
                 foreach ($subscriptions as $subscription) {
                     $webPush->queueNotification(
-                        \Minishlink\WebPush\Subscription::create([
+                        Subscription::create([
                             'endpoint' => $subscription->endpoint,
                             'keys' => [
                                 'p256dh' => $subscription->public_key,
@@ -482,17 +502,17 @@ class OrderController extends Controller
 
     public function editOnline(string $id)
     {
-        $order = \App\Models\Order::with('items.components')->findOrFail($id);
+        $order = Order::with('items.components')->findOrFail($id);
 
         if (in_array($order->status, ['completed', 'cancelled'])) {
             return redirect()->route('orders.show', $order->id)->withErrors(['error' => 'Pesanan yang sudah selesai atau dibatalkan tidak dapat diedit.']);
         }
 
-        $materials = \App\Models\Material::where('is_active', true)
+        $materials = Material::where('is_active', true)
             ->orderBy('name')
             ->get();
 
-        $products = \App\Models\Product::with('sizes.variants')
+        $products = Product::with('sizes.variants')
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -502,7 +522,7 @@ class OrderController extends Controller
 
     public function updateOnline(Request $request, string $id)
     {
-        $order = \App\Models\Order::with('items.components')->findOrFail($id);
+        $order = Order::with('items.components')->findOrFail($id);
 
         if (in_array($order->status, ['completed', 'cancelled'])) {
             return redirect()->route('orders.show', $order->id)->withErrors(['error' => 'Pesanan yang sudah selesai atau dibatalkan tidak dapat diedit.']);
@@ -531,7 +551,7 @@ class OrderController extends Controller
         $imagePath = $order->reference_image;
 
         if ($request->hasFile('reference_image')) {
-            $imagePath = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('reference_image'), 'references');
+            $imagePath = ImageOptimizerService::uploadAndOptimize($request->file('reference_image'), 'references');
         }
 
         $deliveryFee = floatval($request->delivery_fee ?? 0);
@@ -551,20 +571,20 @@ class OrderController extends Controller
                 foreach ($order->items as $item) {
                     foreach ($item->components as $component) {
                         if ($component->material_id) {
-                            $material = \App\Models\Material::find($component->material_id);
+                            $material = Material::find($component->material_id);
                             if ($material) {
                                 $stockBefore = $material->stock;
                                 $material->increment('stock', $component->qty);
                                 $stockAfter = $material->fresh()->stock;
-                                
-                                \App\Models\StockMutation::create([
+
+                                StockMutation::create([
                                     'material_id' => $material->id,
                                     'user_id' => Auth::id(),
                                     'type' => 'in',
                                     'qty' => $component->qty,
                                     'stock_before' => $stockBefore,
                                     'stock_after' => $stockAfter,
-                                    'notes' => 'Pengembalian stok (Edit Data) dari pesanan ' . $order->order_number,
+                                    'notes' => 'Pengembalian stok (Edit Data) dari pesanan '.$order->order_number,
                                 ]);
                             }
                         }
@@ -601,7 +621,7 @@ class OrderController extends Controller
             ]);
 
             // 4. Create new item and components
-            $orderItem = \App\Models\OrderItem::create([
+            $orderItem = OrderItem::create([
                 'order_id' => $order->id,
                 'product_id' => null,
                 'product_name' => $request->product_name,
@@ -616,9 +636,9 @@ class OrderController extends Controller
                         continue;
                     }
 
-                    $material = \App\Models\Material::find($component['material_id']);
+                    $material = Material::find($component['material_id']);
 
-                    if (!$material) {
+                    if (! $material) {
                         continue;
                     }
 
@@ -636,11 +656,11 @@ class OrderController extends Controller
 
                     $color = null;
 
-                    if ($material->type === 'flower_fresh' && !empty($component['color'])) {
+                    if ($material->type === 'flower_fresh' && ! empty($component['color'])) {
                         $color = trim($component['color']);
                     }
 
-                    \App\Models\OrderItemComponent::create([
+                    OrderItemComponent::create([
                         'order_item_id' => $orderItem->id,
                         'material_id' => $material->id,
                         'material_name' => $material->name,
@@ -655,34 +675,35 @@ class OrderController extends Controller
                         $stockBefore = $material->stock;
                         if ($material->stock < $component['qty']) {
                             DB::rollBack();
-                            return back()->withErrors(['error' => 'Stok ' . $material->name . ' tidak mencukupi untuk diubah. Tersedia: ' . $material->stock]);
+
+                            return back()->withErrors(['error' => 'Stok '.$material->name.' tidak mencukupi untuk diubah. Tersedia: '.$material->stock]);
                         }
-                        
+
                         $material->decrement('stock', $component['qty']);
                         $stockAfter = $material->fresh()->stock;
-                        
-                        \App\Models\StockMutation::create([
+
+                        StockMutation::create([
                             'material_id' => $material->id,
                             'user_id' => Auth::id(),
                             'type' => 'out',
                             'qty' => $component['qty'],
                             'stock_before' => $stockBefore,
                             'stock_after' => $stockAfter,
-                            'notes' => 'Penggunaan stok (Edit Data) untuk pesanan ' . $order->order_number,
+                            'notes' => 'Penggunaan stok (Edit Data) untuk pesanan '.$order->order_number,
                         ]);
                     }
                 }
             }
 
-            \App\Services\AuditService::log('Mengubah Pesanan Online', null, $order->toArray());
-            
-            \App\Models\OrderHistory::create([
+            AuditService::log('Mengubah Pesanan Online', null, $order->toArray());
+
+            OrderHistory::create([
                 'order_id' => $order->id,
                 'user_id' => Auth::id(),
                 'old_status' => $order->status,
                 'new_status' => $order->status,
                 'action' => 'edit_data',
-                'notes' => 'Data pesanan dan/atau komponen diubah oleh ' . (Auth::user()->name ?? 'Sistem'),
+                'notes' => 'Data pesanan dan/atau komponen diubah oleh '.(Auth::user()->name ?? 'Sistem'),
             ]);
 
             DB::commit();
@@ -692,14 +713,14 @@ class OrderController extends Controller
             DB::rollBack();
 
             return back()->withErrors([
-                'error' => 'Gagal memperbarui pesanan: ' . $e->getMessage(),
+                'error' => 'Gagal memperbarui pesanan: '.$e->getMessage(),
             ])->withInput();
         }
     }
 
     public function exportExcel(Request $request)
     {
-        $query = \App\Models\Order::with('user');
+        $query = Order::with('user');
 
         if ($request->filled('q')) {
             $q = $request->q;
@@ -723,26 +744,26 @@ class OrderController extends Controller
         }
 
         if ($request->filled('prefix')) {
-            $query->where('order_number', 'like', $request->prefix . '%');
+            $query->where('order_number', 'like', $request->prefix.'%');
         }
 
         $orders = $query->orderBy('created_at', 'desc')->get();
 
         $fileDate = $request->date ?: now()->format('Y-m-d');
-        $fileName = 'data_pesanan_' . $fileDate . '.xls';
+        $fileName = 'data_pesanan_'.$fileDate.'.xls';
 
         $headers = [
-            "Content-Type" => "application/vnd.ms-excel; charset=UTF-8",
-            "Content-Disposition" => "attachment; filename=\"$fileName\"",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0",
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"$fileName\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
         return response()->stream(function () use ($orders) {
             echo "\xEF\xBB\xBF";
             echo "<table border='1'>";
-            echo "<tr>
+            echo '<tr>
                     <th>No</th>
                     <th>Order ID</th>
                     <th>Nama Pemesan</th>
@@ -760,37 +781,37 @@ class OrderController extends Controller
                     <th>Status Pesanan</th>
                     <th>Sumber</th>
                     <th>Diinput Oleh</th>
-                  </tr>";
+                  </tr>';
 
             foreach ($orders as $index => $order) {
-                echo "<tr>";
-                echo "<td>" . ($index + 1) . "</td>";
-                echo "<td>" . e($order->order_number) . "</td>";
-                echo "<td>" . e($order->customer_name) . "</td>";
-                echo "<td>" . e($order->customer_phone ?? '-') . "</td>";
-                echo "<td>" . e($order->recipient_name ?? '-') . "</td>";
-                echo "<td>" . e($order->recipient_phone ?? '-') . "</td>";
-                echo "<td>" . e($order->created_at ? $order->created_at->format('d/m/Y H:i') : '-') . "</td>";
-                echo "<td>" . e($order->scheduled_at ? \Carbon\Carbon::parse($order->scheduled_at)->format('d/m/Y H:i') : '-') . "</td>";
-                echo "<td>" . e($order->delivery_method == 'pickup' ? 'Ambil di Toko' : 'Diantar') . "</td>";
-                echo "<td>" . e($order->delivery_address ?? '-') . "</td>";
-                echo "<td>" . number_format($order->delivery_fee ?? 0, 0, ',', '.') . "</td>";
-                echo "<td>" . number_format($order->discount ?? 0, 0, ',', '.') . "</td>";
-                echo "<td>" . number_format($order->total_amount ?? 0, 0, ',', '.') . "</td>";
-                echo "<td>" . e($this->paymentStatusLabel($order->payment_status)) . "</td>";
-                echo "<td>" . e(strtoupper($order->status ?? '-')) . "</td>";
-                echo "<td>" . e(strtoupper($order->source ?? '-')) . "</td>";
-                echo "<td>" . e($order->user->name ?? $order->handled_by ?? 'System') . "</td>";
-                echo "</tr>";
+                echo '<tr>';
+                echo '<td>'.($index + 1).'</td>';
+                echo '<td>'.e($order->order_number).'</td>';
+                echo '<td>'.e($order->customer_name).'</td>';
+                echo '<td>'.e($order->customer_phone ?? '-').'</td>';
+                echo '<td>'.e($order->recipient_name ?? '-').'</td>';
+                echo '<td>'.e($order->recipient_phone ?? '-').'</td>';
+                echo '<td>'.e($order->created_at ? $order->created_at->format('d/m/Y H:i') : '-').'</td>';
+                echo '<td>'.e($order->scheduled_at ? Carbon::parse($order->scheduled_at)->format('d/m/Y H:i') : '-').'</td>';
+                echo '<td>'.e($order->delivery_method == 'pickup' ? 'Ambil di Toko' : 'Diantar').'</td>';
+                echo '<td>'.e($order->delivery_address ?? '-').'</td>';
+                echo '<td>'.number_format($order->delivery_fee ?? 0, 0, ',', '.').'</td>';
+                echo '<td>'.number_format($order->discount ?? 0, 0, ',', '.').'</td>';
+                echo '<td>'.number_format($order->total_amount ?? 0, 0, ',', '.').'</td>';
+                echo '<td>'.e($this->paymentStatusLabel($order->payment_status)).'</td>';
+                echo '<td>'.e(strtoupper($order->status ?? '-')).'</td>';
+                echo '<td>'.e(strtoupper($order->source ?? '-')).'</td>';
+                echo '<td>'.e($order->user->name ?? $order->handled_by ?? 'System').'</td>';
+                echo '</tr>';
             }
 
-            echo "</table>";
+            echo '</table>';
         }, 200, $headers);
     }
 
     public function kitchen()
     {
-        $orders = \App\Models\Order::where('status', '!=', 'completed')
+        $orders = Order::where('status', '!=', 'completed')
             ->orderByDesc('is_urgent')
             ->orderByDesc('created_at')
             ->get();
@@ -800,7 +821,7 @@ class OrderController extends Controller
 
     public function updateStatus(Request $request, int $id)
     {
-        $order = \App\Models\Order::with('items.components.material')->findOrFail($id);
+        $order = Order::with('items.components.material')->findOrFail($id);
 
         $request->validate([
             'status' => 'required|in:pending,processing,ready,completed,cancelled',
@@ -813,9 +834,9 @@ class OrderController extends Controller
             'status' => $request->status,
         ];
 
-        if ($request->status == 'processing' && !$order->started_at) {
+        if ($request->status == 'processing' && ! $order->started_at) {
             $updateData['started_at'] = now();
-        } elseif ($request->status == 'ready' && !$order->completed_at) {
+        } elseif ($request->status == 'ready' && ! $order->completed_at) {
             $updateData['completed_at'] = now();
         }
 
@@ -826,14 +847,14 @@ class OrderController extends Controller
             $wasDeducted = in_array($oldStatus, $deductedStates);
             $willBeDeducted = in_array($request->status, $deductedStates);
 
-            if ($willBeDeducted && !$wasDeducted) {
+            if ($willBeDeducted && ! $wasDeducted) {
                 foreach ($order->items as $item) {
                     foreach ($item->components as $component) {
                         if ($component->material && $component->material->stock < $component->qty) {
                             DB::rollBack();
 
                             return back()->withErrors([
-                                'error' => 'Stok ' . $component->material->name . ' tidak mencukupi. Stok tersedia: ' . $component->material->stock . ', dibutuhkan: ' . $component->qty,
+                                'error' => 'Stok '.$component->material->name.' tidak mencukupi. Stok tersedia: '.$component->material->stock.', dibutuhkan: '.$component->qty,
                             ]);
                         }
                     }
@@ -848,19 +869,19 @@ class OrderController extends Controller
                             $material->decrement('stock', $component->qty);
                             $stockAfter = $material->fresh()->stock;
 
-                            \App\Models\StockMutation::create([
+                            StockMutation::create([
                                 'material_id' => $material->id,
                                 'user_id' => Auth::id(),
                                 'type' => 'out',
                                 'qty' => $component->qty,
                                 'stock_before' => $stockBefore,
                                 'stock_after' => $stockAfter,
-                                'notes' => 'Digunakan untuk pesanan ' . $order->order_number,
+                                'notes' => 'Digunakan untuk pesanan '.$order->order_number,
                             ]);
                         }
                     }
                 }
-            } elseif (!$willBeDeducted && $wasDeducted) {
+            } elseif (! $willBeDeducted && $wasDeducted) {
                 foreach ($order->items as $item) {
                     foreach ($item->components as $component) {
                         if ($component->material) {
@@ -870,14 +891,14 @@ class OrderController extends Controller
                             $material->increment('stock', $component->qty);
                             $stockAfter = $material->fresh()->stock;
 
-                            \App\Models\StockMutation::create([
+                            StockMutation::create([
                                 'material_id' => $material->id,
                                 'user_id' => Auth::id(),
                                 'type' => 'in',
                                 'qty' => $component->qty,
                                 'stock_before' => $stockBefore,
                                 'stock_after' => $stockAfter,
-                                'notes' => 'Pengembalian stok (Restock) dari pesanan batal/tunda ' . $order->order_number,
+                                'notes' => 'Pengembalian stok (Restock) dari pesanan batal/tunda '.$order->order_number,
                             ]);
                         }
                     }
@@ -887,34 +908,34 @@ class OrderController extends Controller
             $order->update($updateData);
             $newData = $order->fresh()->toArray();
 
-            \App\Services\AuditService::log('Mengubah Status Pesanan', ['status' => $oldData['status']], ['status' => $newData['status']]);
+            AuditService::log('Mengubah Status Pesanan', ['status' => $oldData['status']], ['status' => $newData['status']]);
 
             if ($oldStatus != $request->status) {
-                \App\Models\OrderHistory::create([
+                OrderHistory::create([
                     'order_id' => $order->id,
                     'user_id' => Auth::id(),
                     'old_status' => $oldStatus,
                     'new_status' => $request->status,
                     'action' => 'status_update',
-                    'notes' => 'Status diubah dari ' . $oldStatus . ' menjadi ' . $request->status,
+                    'notes' => 'Status diubah dari '.$oldStatus.' menjadi '.$request->status,
                 ]);
             }
 
             DB::commit();
 
-            return back()->with('success', 'Status pesanan diperbarui menjadi: ' . $request->status);
+            return back()->with('success', 'Status pesanan diperbarui menjadi: '.$request->status);
         } catch (\Exception $e) {
             DB::rollBack();
 
             return back()->withErrors([
-                'error' => 'Gagal memperbarui status pesanan: ' . $e->getMessage(),
+                'error' => 'Gagal memperbarui status pesanan: '.$e->getMessage(),
             ]);
         }
     }
 
     public function updateFloristNotes(Request $request, int $id)
     {
-        $order = \App\Models\Order::findOrFail($id);
+        $order = Order::findOrFail($id);
 
         $request->validate([
             'florist_notes' => 'nullable|string',
@@ -932,14 +953,14 @@ class OrderController extends Controller
         $distanceStr = str_replace(',', '.', $request->query('distance', '0'));
         $distance = floatval($distanceStr);
 
-        $feePerKm = floatval(\App\Models\Setting::get('delivery_fee_per_km', 3000));
-        $minFee = floatval(\App\Models\Setting::get('delivery_min_fee', 15000));
-        $maxRadius = floatval(\App\Models\Setting::get('delivery_max_radius', 25));
+        $feePerKm = floatval(Setting::get('delivery_fee_per_km', 3000));
+        $minFee = floatval(Setting::get('delivery_min_fee', 15000));
+        $maxRadius = floatval(Setting::get('delivery_max_radius', 25));
 
         if ($distance > $maxRadius) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Area di luar jangkauan pengiriman! Maksimal radius adalah ' . $maxRadius . ' km.',
+                'message' => 'Area di luar jangkauan pengiriman! Maksimal radius adalah '.$maxRadius.' km.',
                 'fee' => 0,
             ]);
         }
@@ -960,21 +981,21 @@ class OrderController extends Controller
             'status' => 'success',
             'distance' => $distance,
             'fee' => $finalFee,
-            'formatted_fee' => 'Rp ' . number_format($finalFee, 0, ',', '.'),
+            'formatted_fee' => 'Rp '.number_format($finalFee, 0, ',', '.'),
         ]);
     }
 
     public function printReceipt(int $id)
     {
-        $order = \App\Models\Order::with(['items.components', 'payments.verifier', 'user'])->findOrFail($id);
+        $order = Order::with(['items.components', 'payments.verifier', 'user'])->findOrFail($id);
 
-        if (!in_array($order->payment_status, ['paid_qris', 'paid_tf', 'paid', 'dp'])) {
+        if (! in_array($order->payment_status, ['paid_qris', 'paid_tf', 'paid', 'dp'])) {
             return back()->withErrors([
                 'error' => 'Nota hanya bisa dicetak jika pesanan sudah LUNAS.',
             ]);
         }
 
-        \App\Services\AuditService::log('Mencetak Ulang Nota', null, [
+        AuditService::log('Mencetak Ulang Nota', null, [
             'order_number' => $order->order_number,
         ]);
 
@@ -988,23 +1009,23 @@ class OrderController extends Controller
         $code = $request->query('code');
         $subtotal = floatval($request->query('subtotal', 0));
 
-        if (!$code) {
+        if (! $code) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Kode voucher kosong.',
             ]);
         }
 
-        $promo = \App\Models\Promo::where('code', $code)->first();
+        $promo = Promo::where('code', $code)->first();
 
-        if (!$promo) {
+        if (! $promo) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Kode voucher tidak ditemukan.',
             ]);
         }
 
-        if (!$promo->is_active) {
+        if (! $promo->is_active) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Voucher sudah tidak aktif.',
@@ -1035,7 +1056,7 @@ class OrderController extends Controller
         if ($promo->min_purchase > 0 && $subtotal < $promo->min_purchase) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Minimal belanja untuk voucher ini adalah Rp ' . number_format($promo->min_purchase, 0, ',', '.'),
+                'message' => 'Minimal belanja untuk voucher ini adalah Rp '.number_format($promo->min_purchase, 0, ',', '.'),
             ]);
         }
 
@@ -1062,9 +1083,9 @@ class OrderController extends Controller
     public function checkNewOrders(Request $request)
     {
         $lastCheck = $request->query('last_check');
-        $pendingOrdersCount = \App\Models\Order::where('status', 'pending')->count();
+        $pendingOrdersCount = Order::where('status', 'pending')->count();
 
-        if (!$lastCheck) {
+        if (! $lastCheck) {
             return response()->json([
                 'has_new' => false,
                 'count' => $pendingOrdersCount,
@@ -1072,7 +1093,7 @@ class OrderController extends Controller
             ]);
         }
 
-        $newOrdersCount = \App\Models\Order::where('created_at', '>', date('Y-m-d H:i:s', $lastCheck))
+        $newOrdersCount = Order::where('created_at', '>', date('Y-m-d H:i:s', $lastCheck))
             ->where('source', 'online')
             ->count();
 

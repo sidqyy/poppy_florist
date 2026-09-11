@@ -2,25 +2,30 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
+use App\Models\OrderImage;
+use App\Services\ImageOptimizerService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class OrderImageController extends Controller
 {
     public function store(Request $request, string $orderId)
     {
-        $order = \App\Models\Order::findOrFail($orderId);
+        $order = Order::findOrFail($orderId);
 
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string',
         ]);
-        $imagePath = \App\Services\ImageOptimizerService::uploadAndOptimize($request->file('image'), 'order_results');
+        $imagePath = ImageOptimizerService::uploadAndOptimize($request->file('image'), 'order_results');
 
-        \App\Models\OrderImage::create([
+        OrderImage::create([
             'order_id' => $order->id,
-            'user_id' => \Illuminate\Support\Facades\Auth::id(),
+            'user_id' => Auth::id(),
             'image_path' => $imagePath,
-            'notes' => $request->notes
+            'notes' => $request->notes,
         ]);
 
         return back()->with('success', 'Foto hasil berhasil diunggah.');
@@ -28,11 +33,11 @@ class OrderImageController extends Controller
 
     public function destroy(string $id)
     {
-        $image = \App\Models\OrderImage::findOrFail($id);
-        
+        $image = OrderImage::findOrFail($id);
+
         // Hapus file fisik
-        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($image->image_path)) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($image->image_path);
+        if (Storage::disk('public')->exists($image->image_path)) {
+            Storage::disk('public')->delete($image->image_path);
         }
 
         $image->delete();

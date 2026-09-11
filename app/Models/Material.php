@@ -27,16 +27,16 @@ class Material extends Model
 
     public function getFormattedPriceAttribute()
     {
-        return 'Rp ' . number_format($this->price, 0, ',', '.');
+        return 'Rp '.number_format($this->price, 0, ',', '.');
     }
 
     public function getFormattedPriceStemAttribute()
     {
-        return 'Rp ' . number_format($this->price_stem, 0, ',', '.');
+        return 'Rp '.number_format($this->price_stem, 0, ',', '.');
     }
 
     public function getFormattedPriceArrangementAttribute()
     {
-        return 'Rp ' . number_format($this->price_arrangement, 0, ',', '.');
+        return 'Rp '.number_format($this->price_arrangement, 0, ',', '.');
     }
 }

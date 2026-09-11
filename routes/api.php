@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PosApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -11,20 +14,20 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    Route::get('/dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getStats']);
-    
+    Route::get('/dashboard/stats', [DashboardController::class, 'getStats']);
+
     // Florist
-    Route::get('/orders/pending', [\App\Http\Controllers\Api\OrderController::class, 'pendingQueue']);
-    Route::post('/orders/{id}/complete', [\App\Http\Controllers\Api\OrderController::class, 'markCompleted']);
+    Route::get('/orders/pending', [OrderController::class, 'pendingQueue']);
+    Route::post('/orders/{id}/complete', [OrderController::class, 'markCompleted']);
 
     // Marketing
-    Route::post('/orders/online', [\App\Http\Controllers\Api\OrderController::class, 'storeOnline']);
+    Route::post('/orders/online', [OrderController::class, 'storeOnline']);
 });
 
 // POS Kiosk API (Public/Generic Access for Walk-in Kiosk Devices)
 Route::prefix('pos')->group(function () {
-    Route::get('/categories', [\App\Http\Controllers\Api\PosApiController::class, 'getCategories']);
-    Route::get('/products', [\App\Http\Controllers\Api\PosApiController::class, 'getProducts']);
-    Route::get('/materials', [\App\Http\Controllers\Api\PosApiController::class, 'getMaterials']);
-    Route::post('/checkout', [\App\Http\Controllers\Api\PosApiController::class, 'checkout']);
+    Route::get('/categories', [PosApiController::class, 'getCategories']);
+    Route::get('/products', [PosApiController::class, 'getProducts']);
+    Route::get('/materials', [PosApiController::class, 'getMaterials']);
+    Route::post('/checkout', [PosApiController::class, 'checkout']);
 });

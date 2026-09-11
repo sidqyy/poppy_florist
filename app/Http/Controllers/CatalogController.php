@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Http\Request;
 
 class CatalogController extends Controller
 {
     public function index(Request $request)
     {
-        $query = \App\Models\Product::with([
+        $query = Product::with([
             'categories',
             'components.material',
-            'sizes.variants'
+            'sizes.variants',
         ])->where('is_active', true);
 
         // Filter Category
@@ -23,7 +25,7 @@ class CatalogController extends Controller
 
         // Search Name
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         // Filter Availability (Ready/Preorder/Custom)
@@ -49,14 +51,14 @@ class CatalogController extends Controller
                 }
 
                 if ($request->flower_type === 'artificial') {
-                    return $hasArtificial && !$hasFresh;
+                    return $hasArtificial && ! $hasFresh;
                 }
 
                 return true;
             });
         }
 
-        $categories = \App\Models\Category::where('is_active', true)
+        $categories = Category::where('is_active', true)
             ->orderBy('name')
             ->get();
 

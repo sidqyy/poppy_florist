@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Order;
-use App\Models\StockMutation;
 use App\Models\OrderHistory;
+use App\Models\StockMutation;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 class AutoCompleteOrders extends Command
@@ -39,6 +39,7 @@ class AutoCompleteOrders extends Command
 
         if ($orders->isEmpty()) {
             $this->info('No orders to auto-complete.');
+
             return;
         }
 
@@ -50,7 +51,7 @@ class AutoCompleteOrders extends Command
 
             try {
                 $oldStatus = $order->status;
-                
+
                 // If it was pending, we must deduct stock
                 if ($oldStatus === 'pending') {
                     // 1. Check stock sufficiency
@@ -64,10 +65,11 @@ class AutoCompleteOrders extends Command
                         }
                     }
 
-                    if (!$stockSufficient) {
+                    if (! $stockSufficient) {
                         DB::rollBack();
                         $this->warn("Skipped Order {$order->order_number}: Insufficient stock for auto-completion.");
                         $skippedCount++;
+
                         continue;
                     }
 
@@ -88,7 +90,7 @@ class AutoCompleteOrders extends Command
                                     'qty' => $component->qty,
                                     'stock_before' => $stockBefore,
                                     'stock_after' => $stockAfter,
-                                    'notes' => 'Otomatis digunakan untuk pesanan ' . $order->order_number . ' (Auto-Complete)',
+                                    'notes' => 'Otomatis digunakan untuk pesanan '.$order->order_number.' (Auto-Complete)',
                                 ]);
                             }
                         }
@@ -101,9 +103,9 @@ class AutoCompleteOrders extends Command
                     'completed_at' => now(),
                 ];
 
-                if ($oldStatus === 'pending' && !$order->started_at) {
+                if ($oldStatus === 'pending' && ! $order->started_at) {
                     $updateData['started_at'] = now();
-                } elseif ($oldStatus === 'processing' && !$order->completed_at) {
+                } elseif ($oldStatus === 'processing' && ! $order->completed_at) {
                     $updateData['completed_at'] = now();
                 }
 
@@ -125,7 +127,7 @@ class AutoCompleteOrders extends Command
 
             } catch (\Exception $e) {
                 DB::rollBack();
-                $this->error("Failed to auto-complete Order {$order->order_number}: " . $e->getMessage());
+                $this->error("Failed to auto-complete Order {$order->order_number}: ".$e->getMessage());
                 $skippedCount++;
             }
         }

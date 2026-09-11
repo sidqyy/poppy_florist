@@ -8,7 +8,7 @@ class Promo extends Model
 {
     protected $fillable = [
         'code', 'name', 'description', 'type', 'value', 'min_purchase',
-        'start_date', 'end_date', 'max_uses', 'used_count', 'is_active'
+        'start_date', 'end_date', 'max_uses', 'used_count', 'is_active',
     ];
 
     protected $casts = [

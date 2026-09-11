@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PushSubscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\PushSubscription;
-use Minishlink\WebPush\WebPush;
 use Minishlink\WebPush\Subscription;
+use Minishlink\WebPush\WebPush;
 
 class PushNotificationController extends Controller
 {
@@ -15,7 +15,7 @@ class PushNotificationController extends Controller
         $request->validate([
             'endpoint' => 'required',
             'public_key' => 'required',
-            'auth_token' => 'required'
+            'auth_token' => 'required',
         ]);
 
         PushSubscription::updateOrCreate(
@@ -23,7 +23,7 @@ class PushNotificationController extends Controller
             [
                 'user_id' => Auth::id(),
                 'public_key' => $request->public_key,
-                'auth_token' => $request->auth_token
+                'auth_token' => $request->auth_token,
             ]
         );
 
@@ -33,16 +33,17 @@ class PushNotificationController extends Controller
     public function unsubscribe(Request $request)
     {
         PushSubscription::where('endpoint', $request->endpoint)->delete();
+
         return response()->json(['success' => true]);
     }
 
     public function notifyFlorist(Request $request)
     {
         $subscriptions = PushSubscription::all();
-        
+
         $auth = [
             'VAPID' => [
-                'subject' => 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'),
+                'subject' => 'https://'.($_SERVER['HTTP_HOST'] ?? 'localhost'),
                 'publicKey' => env('VAPID_PUBLIC_KEY'),
                 'privateKey' => env('VAPID_PRIVATE_KEY'),
             ],
@@ -62,13 +63,13 @@ class PushNotificationController extends Controller
                 json_encode([
                     'title' => 'Pesanan Baru!',
                     'body' => 'Ada pesanan baru yang perlu dirangkai',
-                    'icon' => '/favicon.ico'
+                    'icon' => '/favicon.ico',
                 ], JSON_THROW_ON_ERROR)
             );
         }
 
         $webPush->flush();
-        
+
         return response()->json(['success' => true]);
     }
-} 
+}

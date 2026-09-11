@@ -8,11 +8,11 @@ class Order extends Model
 {
     protected $fillable = [
         'order_number', 'customer_name', 'customer_phone', 'recipient_name', 'recipient_phone',
-        'delivery_method', 'delivery_address', 'delivery_distance', 'delivery_fee', 'discount', 
-        'delivery_lat', 'delivery_lng', 'scheduled_at', 'status', 'payment_status', 
+        'delivery_method', 'delivery_address', 'delivery_distance', 'delivery_fee', 'discount',
+        'delivery_lat', 'delivery_lng', 'scheduled_at', 'status', 'payment_status',
         'total_amount', 'notes', 'user_id', 'reference_image', 'budget', 'source',
         'is_urgent', 'estimated_time', 'florist_notes', 'started_at', 'completed_at', 'handled_by',
-        'external_id', 'greeting_card', 'payment_proof', 'product_name'
+        'external_id', 'greeting_card', 'payment_proof', 'product_name',
     ];
 
     protected $casts = [

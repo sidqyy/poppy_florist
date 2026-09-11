@@ -1,12 +1,13 @@
 <?php
 
-require __DIR__ . '/vendor/autoload.php';
-$app = require_once __DIR__ . '/bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+require __DIR__.'/vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
+$kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 
 use App\Models\Order;
 use App\Models\Payment;
+use Illuminate\Contracts\Console\Kernel;
 
 echo "--- MEMULAI UPDATE STATUS PEMBAYARAN PESANAN LAMA ---\n";
 
@@ -17,9 +18,9 @@ $countTf = 0;
 
 foreach ($orders as $order) {
     $payment = Payment::where('order_id', $order->id)->latest()->first();
-    if ($payment && !empty($payment->payment_method)) {
+    if ($payment && ! empty($payment->payment_method)) {
         $method = strtolower($payment->payment_method);
-        
+
         if (str_contains($method, 'qris')) {
             $order->payment_status = 'paid_qris';
             $order->save();

@@ -9,17 +9,17 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-public function up(): void
-{
-    Schema::table('order_item_components', function (Blueprint $table) {
-        $table->string('color')->nullable()->after('material_name');
-    });
-}
+    public function up(): void
+    {
+        Schema::table('order_item_components', function (Blueprint $table) {
+            $table->string('color')->nullable()->after('material_name');
+        });
+    }
 
-public function down(): void
-{
-    Schema::table('order_item_components', function (Blueprint $table) {
-        $table->dropColumn('color');
-    });
-}
+    public function down(): void
+    {
+        Schema::table('order_item_components', function (Blueprint $table) {
+            $table->dropColumn('color');
+        });
+    }
 };

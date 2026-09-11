@@ -26,10 +26,11 @@ class TruncateTransactions extends Command
      */
     public function handle()
     {
-        if (!$this->option('force')) {
+        if (! $this->option('force')) {
             $this->warn('⚠️  Peringatan: Operasi ini akan MENGHAPUS SEMUA data di tabel Orders dan Payments!');
-            if (!$this->confirm('Apakah Anda yakin ingin melanjutkan?')) {
+            if (! $this->confirm('Apakah Anda yakin ingin melanjutkan?')) {
                 $this->info('Operasi dibatalkan.');
+
                 return;
             }
         }
@@ -62,7 +63,7 @@ class TruncateTransactions extends Command
 
             $this->info('✅ Semua data transaksi telah dihapus dan auto-increment direset!');
         } catch (\Exception $e) {
-            $this->error('❌ Error: ' . $e->getMessage());
+            $this->error('❌ Error: '.$e->getMessage());
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
         }
     }

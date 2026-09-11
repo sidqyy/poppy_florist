@@ -2,27 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\ArrangementService;
+use App\Models\Category;
+use App\Models\Material;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\OrderItemComponent;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductSize;
 use App\Models\ProductVariant;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Payment;
-use App\Models\Material;
-use App\Models\ArrangementService;
+use App\Models\Setting;
 use App\Models\StockMutation;
-use App\Models\OrderItemComponent;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Auth;
 
 class PosController extends Controller
 {
     public function login(Request $request)
     {
         $request->validate([
-            'florist_name' => 'required|string'
+            'florist_name' => 'required|string',
         ]);
 
         session(['pos_florist' => $request->florist_name]);
@@ -50,14 +53,14 @@ class PosController extends Controller
 
     public function catalog(Request $request)
     {
-        $categories = \App\Models\Category::all();
+        $categories = Category::all();
 
         $query = Product::where('is_active', true)
             ->with([
                 'categories',
                 'sizes',
                 'sizes.variants',
-                'components.material'
+                'components.material',
             ]);
 
         if ($request->has('category') && $request->category != '') {
@@ -160,7 +163,7 @@ class PosController extends Controller
         $product = Product::findOrFail($request->product_id);
         $cart = Session::get('pos_cart', []);
         $price = $product->total_price;
-        $cartKey = 'prod_' . $product->id;
+        $cartKey = 'prod_'.$product->id;
 
         $isRented = false;
         $rentalDuration = null;
@@ -169,11 +172,11 @@ class PosController extends Controller
             $isRented = true;
             $rentalDuration = max(1, intval($request->rental_duration));
             $price = $product->rental_price_per_day * $rentalDuration;
-            $cartKey = 'prod_' . $product->id . '_rent_' . $rentalDuration;
+            $cartKey = 'prod_'.$product->id.'_rent_'.$rentalDuration;
         } else {
             if ($request->has('custom_price') && $product->price_type == 'range') {
                 $price = $request->custom_price;
-                $cartKey = 'prod_' . $product->id . '_' . $price;
+                $cartKey = 'prod_'.$product->id.'_'.$price;
             }
         }
 
@@ -181,14 +184,14 @@ class PosController extends Controller
             $cart[$cartKey]['qty']++;
         } else {
             $cart[$cartKey] = [
-                "id" => $product->id,
-                "type" => "product",
-                "name" => $product->name,
-                "qty" => 1,
-                "price" => $price,
-                "image" => $product->image,
-                "is_rented" => $isRented,
-                "rental_duration" => $rentalDuration
+                'id' => $product->id,
+                'type' => 'product',
+                'name' => $product->name,
+                'qty' => 1,
+                'price' => $price,
+                'image' => $product->image,
+                'is_rented' => $isRented,
+                'rental_duration' => $rentalDuration,
             ];
         }
 
@@ -197,139 +200,139 @@ class PosController extends Controller
         return redirect()->back()->with('success', 'Produk berhasil ditambahkan ke keranjang!');
     }
 
-public function addVariantProductToCart(Request $request)
-{
-    $request->validate([
-        'product_id' => 'required|exists:products,id',
-        'size_id' => 'required|exists:product_sizes,id',
-        'variant_id' => 'required|exists:product_variants,id',
-        'materials' => 'nullable|array',
-        'materials.*.material_id' => 'nullable|exists:materials,id',
-        'materials.*.qty' => 'nullable|integer|min:1',
-        'is_rented' => 'nullable|in:0,1',
-        'rental_duration' => 'nullable|integer|min:1',
-    ]);
+    public function addVariantProductToCart(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'size_id' => 'required|exists:product_sizes,id',
+            'variant_id' => 'required|exists:product_variants,id',
+            'materials' => 'nullable|array',
+            'materials.*.material_id' => 'nullable|exists:materials,id',
+            'materials.*.qty' => 'nullable|integer|min:1',
+            'is_rented' => 'nullable|in:0,1',
+            'rental_duration' => 'nullable|integer|min:1',
+        ]);
 
-    $product = Product::findOrFail($request->product_id);
+        $product = Product::findOrFail($request->product_id);
 
-    $size = ProductSize::where('product_id', $product->id)
-        ->where('id', $request->size_id)
-        ->firstOrFail();
+        $size = ProductSize::where('product_id', $product->id)
+            ->where('id', $request->size_id)
+            ->firstOrFail();
 
-    $variant = ProductVariant::where('product_size_id', $size->id)
-        ->where('id', $request->variant_id)
-        ->firstOrFail();
+        $variant = ProductVariant::where('product_size_id', $size->id)
+            ->where('id', $request->variant_id)
+            ->firstOrFail();
 
-    $isRented = false;
-    $rentalDuration = null;
-    $finalPrice = $variant->price;
+        $isRented = false;
+        $rentalDuration = null;
+        $finalPrice = $variant->price;
 
-    if (
-        $product->is_rentable &&
-        $request->has('is_rented') &&
-        $request->is_rented == '1'
-    ) {
-        $isRented = true;
-        $rentalDuration = max(1, intval($request->rental_duration));
-        $finalPrice = ($product->rental_price_per_day ?? 0) * $rentalDuration;
+        if (
+            $product->is_rentable &&
+            $request->has('is_rented') &&
+            $request->is_rented == '1'
+        ) {
+            $isRented = true;
+            $rentalDuration = max(1, intval($request->rental_duration));
+            $finalPrice = ($product->rental_price_per_day ?? 0) * $rentalDuration;
 
-        if ($finalPrice <= 0) {
-            return back()->with('error', 'Harga sewa produk belum diatur.');
-        }
-    }
-
-    $components = [];
-
-    $needChooseComponents = $product->has_flexible_components == 1;
-
-    if ($needChooseComponents) {
-        if (!$request->has('materials') || !is_array($request->materials)) {
-            return back()->with('error', 'Produk ini wajib memilih komponen terlebih dahulu.');
+            if ($finalPrice <= 0) {
+                return back()->with('error', 'Harga sewa produk belum diatur.');
+            }
         }
 
-        foreach ($request->materials as $item) {
-            if (empty($item['material_id']) || empty($item['qty'])) {
-                continue;
+        $components = [];
+
+        $needChooseComponents = $product->has_flexible_components == 1;
+
+        if ($needChooseComponents) {
+            if (! $request->has('materials') || ! is_array($request->materials)) {
+                return back()->with('error', 'Produk ini wajib memilih komponen terlebih dahulu.');
             }
 
-            $material = Material::find($item['material_id']);
+            foreach ($request->materials as $item) {
+                if (empty($item['material_id']) || empty($item['qty'])) {
+                    continue;
+                }
 
-            if (!$material) {
-                continue;
+                $material = Material::find($item['material_id']);
+
+                if (! $material) {
+                    continue;
+                }
+
+                $price = $this->getMaterialArrangementPrice($material);
+
+                $components[] = [
+                    'material_id' => $material->id,
+                    'name' => $material->name,
+                    'qty' => intval($item['qty']),
+                    'price' => $price,
+                    'unit_price' => $price,
+                ];
             }
 
-            $price = $this->getMaterialArrangementPrice($material);
-
-            $components[] = [
-                'material_id' => $material->id,
-                'name' => $material->name,
-                'qty' => intval($item['qty']),
-                'price' => $price,
-                'unit_price' => $price
-            ];
+            if (count($components) === 0) {
+                return back()->with('error', 'Pilih minimal satu komponen untuk produk ini.');
+            }
         }
 
-        if (count($components) === 0) {
-            return back()->with('error', 'Pilih minimal satu komponen untuk produk ini.');
-        }
+        $cart = Session::get('pos_cart', []);
+
+        $cartKey =
+            'variant_'.
+            $product->id.'_'.
+            $size->id.'_'.
+            $variant->id.'_'.
+            ($isRented ? 'rent_'.$rentalDuration.'_' : '').
+            time();
+
+        $variantImage = $variant->image
+            ? $variant->image
+            : ($size->image
+                ? $size->image
+                : $product->image);
+
+        $cart[$cartKey] = [
+            'id' => $product->id,
+            'type' => 'product_variant',
+            'name' => $product->name.' - '.$size->size_name.' - '.$variant->variant_name,
+            'qty' => 1,
+            'price' => $finalPrice,
+            'image' => $variantImage,
+
+            'is_rented' => $isRented,
+            'rental_duration' => $rentalDuration,
+
+            'product_size_id' => $size->id,
+            'product_variant_id' => $variant->id,
+            'size_name' => $size->size_name,
+            'variant_name' => $variant->variant_name,
+            'components' => $components,
+        ];
+
+        Session::put('pos_cart', $cart);
+
+        return back()->with('success', 'Produk varian berhasil ditambahkan ke keranjang.');
     }
-
-    $cart = Session::get('pos_cart', []);
-
-    $cartKey =
-        'variant_' .
-        $product->id . '_' .
-        $size->id . '_' .
-        $variant->id . '_' .
-        ($isRented ? 'rent_' . $rentalDuration . '_' : '') .
-        time();
-
-    $variantImage = $variant->image
-        ? $variant->image
-        : ($size->image
-            ? $size->image
-            : $product->image);
-
-    $cart[$cartKey] = [
-        "id" => $product->id,
-        "type" => "product_variant",
-        "name" => $product->name . ' - ' . $size->size_name . ' - ' . $variant->variant_name,
-        "qty" => 1,
-        "price" => $finalPrice,
-        "image" => $variantImage,
-
-        "is_rented" => $isRented,
-        "rental_duration" => $rentalDuration,
-
-        "product_size_id" => $size->id,
-        "product_variant_id" => $variant->id,
-        "size_name" => $size->size_name,
-        "variant_name" => $variant->variant_name,
-        "components" => $components
-    ];
-
-    Session::put('pos_cart', $cart);
-
-    return back()->with('success', 'Produk varian berhasil ditambahkan ke keranjang.');
-}
 
     public function addMaterialToCart(Request $request)
     {
         $material = Material::findOrFail($request->material_id);
         $cart = Session::get('pos_cart', []);
-        $cartKey = 'mat_' . $material->id;
+        $cartKey = 'mat_'.$material->id;
         $price = $this->getMaterialStemPrice($material);
 
         if (isset($cart[$cartKey])) {
             $cart[$cartKey]['qty']++;
         } else {
             $cart[$cartKey] = [
-                "id" => $material->id,
-                "type" => "material",
-                "name" => $material->name . ' (Eceran)',
-                "qty" => 1,
-                "price" => $price,
-                "image" => $material->image
+                'id' => $material->id,
+                'type' => 'material',
+                'name' => $material->name.' (Eceran)',
+                'qty' => 1,
+                'price' => $price,
+                'image' => $material->image,
             ];
         }
 
@@ -341,7 +344,7 @@ public function addVariantProductToCart(Request $request)
     public function addMultipleMaterialsToCart(Request $request)
     {
         $request->validate([
-            'materials' => 'required|array'
+            'materials' => 'required|array',
         ]);
 
         $cart = Session::get('pos_cart', []);
@@ -354,19 +357,19 @@ public function addVariantProductToCart(Request $request)
                 $material = Material::find($matId);
 
                 if ($material) {
-                    $cartKey = 'mat_' . $material->id;
+                    $cartKey = 'mat_'.$material->id;
                     $price = $this->getMaterialStemPrice($material);
 
                     if (isset($cart[$cartKey])) {
                         $cart[$cartKey]['qty'] += $qty;
                     } else {
                         $cart[$cartKey] = [
-                            "id" => $material->id,
-                            "type" => "material",
-                            "name" => $material->name . ' (Eceran)',
-                            "qty" => $qty,
-                            "price" => $price,
-                            "image" => $material->image
+                            'id' => $material->id,
+                            'type' => 'material',
+                            'name' => $material->name.' (Eceran)',
+                            'qty' => $qty,
+                            'price' => $price,
+                            'image' => $material->image,
                         ];
                     }
 
@@ -378,134 +381,134 @@ public function addVariantProductToCart(Request $request)
         if ($addedCount > 0) {
             Session::put('pos_cart', $cart);
 
-            return redirect()->back()->with('success', $addedCount . ' barang eceran berhasil ditambahkan ke keranjang!');
+            return redirect()->back()->with('success', $addedCount.' barang eceran berhasil ditambahkan ke keranjang!');
         }
 
         return redirect()->back()->with('error', 'Pilih minimal satu barang dengan jumlah lebih dari 0!');
     }
 
-public function addCustomToCart(Request $request)
-{
-    $request->validate([
-        'custom_name' => 'required|string|max:255',
-        'custom_notes' => 'nullable|string',
-        'materials' => 'required|array',
-        'materials.*' => 'integer|min:0',
-        'extra_items' => 'nullable|array',
-        'extra_items.*.name' => 'required|string',
-        'extra_items.*.price' => 'required|numeric|min:0',
-        'extra_items.*.qty' => 'required|integer|min:1',
-        'is_premium_service' => 'nullable|boolean',
-    ]);
+    public function addCustomToCart(Request $request)
+    {
+        $request->validate([
+            'custom_name' => 'required|string|max:255',
+            'custom_notes' => 'nullable|string',
+            'materials' => 'required|array',
+            'materials.*' => 'integer|min:0',
+            'extra_items' => 'nullable|array',
+            'extra_items.*.name' => 'required|string',
+            'extra_items.*.price' => 'required|numeric|min:0',
+            'extra_items.*.qty' => 'required|integer|min:1',
+            'is_premium_service' => 'nullable|boolean',
+        ]);
 
-    $components = [];
-    $totalPrice = 0;
+        $components = [];
+        $totalPrice = 0;
 
-    // Ini khusus untuk menghitung jasa rangkai.
-    // Hanya flower_fresh yang dihitung ke min/max item jasa.
-    $freshFlowerCount = 0;
+        // Ini khusus untuk menghitung jasa rangkai.
+        // Hanya flower_fresh yang dihitung ke min/max item jasa.
+        $freshFlowerCount = 0;
 
-    foreach ($request->materials as $matId => $qty) {
-        $qty = intval($qty);
-
-        if ($qty > 0) {
-            $material = Material::find($matId);
-
-            if ($material) {
-                if ($material->type === 'service') {
-                    continue;
-                }
-
-                $price = $this->getMaterialArrangementPrice($material);
-                $subtotal = $price * $qty;
-
-                $totalPrice += $subtotal;
-
-                if ($material->type === 'flower_fresh') {
-                    $freshFlowerCount += $qty;
-                }
-
-                $components[] = [
-                    'material_id' => $material->id,
-                    'name' => $material->name,
-                    'qty' => $qty,
-                    'price' => $price,
-                    'unit_price' => $price,
-                ];
-            }
-        }
-    }
-
-    if ($request->extra_items) {
-        foreach ($request->extra_items as $extra) {
-            $qty = intval($extra['qty']);
-            $price = floatval($extra['price']);
+        foreach ($request->materials as $matId => $qty) {
+            $qty = intval($qty);
 
             if ($qty > 0) {
-                $subtotal = $price * $qty;
+                $material = Material::find($matId);
 
-                $totalPrice += $subtotal;
+                if ($material) {
+                    if ($material->type === 'service') {
+                        continue;
+                    }
+
+                    $price = $this->getMaterialArrangementPrice($material);
+                    $subtotal = $price * $qty;
+
+                    $totalPrice += $subtotal;
+
+                    if ($material->type === 'flower_fresh') {
+                        $freshFlowerCount += $qty;
+                    }
+
+                    $components[] = [
+                        'material_id' => $material->id,
+                        'name' => $material->name,
+                        'qty' => $qty,
+                        'price' => $price,
+                        'unit_price' => $price,
+                    ];
+                }
+            }
+        }
+
+        if ($request->extra_items) {
+            foreach ($request->extra_items as $extra) {
+                $qty = intval($extra['qty']);
+                $price = floatval($extra['price']);
+
+                if ($qty > 0) {
+                    $subtotal = $price * $qty;
+
+                    $totalPrice += $subtotal;
+
+                    $components[] = [
+                        'material_id' => null,
+                        'name' => $extra['name'],
+                        'qty' => $qty,
+                        'price' => $price,
+                        'unit_price' => $price,
+                    ];
+                }
+            }
+        }
+
+        if (empty($components)) {
+            return redirect()->back()->with('error', 'Pilih minimal satu bahan untuk custom buket');
+        }
+
+        $isPremium = $request->has('is_premium_service');
+
+        if ($freshFlowerCount > 0) {
+            $service = ArrangementService::where('is_active', true)
+                ->where('is_premium', $isPremium)
+                ->where('min_item', '<=', $freshFlowerCount)
+                ->where(function ($query) use ($freshFlowerCount) {
+                    $query->where('max_item', '>=', $freshFlowerCount)
+                        ->orWhereNull('max_item');
+                })
+                ->orderBy('min_item')
+                ->first();
+
+            if ($service) {
+                $servicePrice = (float) $service->price;
+                $totalPrice += $servicePrice;
 
                 $components[] = [
                     'material_id' => null,
-                    'name' => $extra['name'],
-                    'qty' => $qty,
-                    'price' => $price,
-                    'unit_price' => $price,
+                    'name' => 'JS '.$service->name,
+                    'qty' => 1,
+                    'price' => $servicePrice,
+                    'unit_price' => $servicePrice,
                 ];
             }
         }
+
+        $cart = Session::get('pos_cart', []);
+        $cartKey = 'custom_'.time();
+
+        $cart[$cartKey] = [
+            'id' => $cartKey,
+            'type' => 'custom',
+            'name' => $request->custom_name,
+            'qty' => 1,
+            'price' => $totalPrice,
+            'image' => null,
+            'notes' => $request->custom_notes ?? null,
+            'components' => $components,
+        ];
+
+        Session::put('pos_cart', $cart);
+
+        return redirect()->back()->with('success', 'Custom Buket berhasil ditambahkan');
     }
-
-    if (empty($components)) {
-        return redirect()->back()->with('error', 'Pilih minimal satu bahan untuk custom buket');
-    }
-
-    $isPremium = $request->has('is_premium_service');
-
-    if ($freshFlowerCount > 0) {
-        $service = ArrangementService::where('is_active', true)
-            ->where('is_premium', $isPremium)
-            ->where('min_item', '<=', $freshFlowerCount)
-            ->where(function ($query) use ($freshFlowerCount) {
-                $query->where('max_item', '>=', $freshFlowerCount)
-                    ->orWhereNull('max_item');
-            })
-            ->orderBy('min_item')
-            ->first();
-
-        if ($service) {
-            $servicePrice = (float) $service->price;
-            $totalPrice += $servicePrice;
-
-            $components[] = [
-                'material_id' => null,
-                'name' => 'JS ' . $service->name,
-                'qty' => 1,
-                'price' => $servicePrice,
-                'unit_price' => $servicePrice,
-            ];
-        }
-    }
-
-    $cart = Session::get('pos_cart', []);
-    $cartKey = 'custom_' . time();
-
-    $cart[$cartKey] = [
-        "id" => $cartKey,
-        "type" => "custom",
-        "name" => $request->custom_name,
-        "qty" => 1,
-        "price" => $totalPrice,
-        "image" => null,
-        "notes" => $request->custom_notes ?? null,
-        "components" => $components,
-    ];
-
-    Session::put('pos_cart', $cart);
-
-    return redirect()->back()->with('success', 'Custom Buket berhasil ditambahkan');
-}
 
     public function updateCart(Request $request)
     {
@@ -513,7 +516,7 @@ public function addCustomToCart(Request $request)
 
         if ($request->id && $request->qty) {
             if (isset($cart[$request->id])) {
-                $cart[$request->id]["qty"] = $request->qty;
+                $cart[$request->id]['qty'] = $request->qty;
                 Session::put('pos_cart', $cart);
             }
         }
@@ -553,7 +556,7 @@ public function addCustomToCart(Request $request)
             'delivery_address' => 'nullable|string',
             'scheduled_at' => 'required|date',
             'payment_method' => 'required|in:cash,transfer,qris',
-            'amount_tendered' => 'required|numeric|min:0'
+            'amount_tendered' => 'required|numeric|min:0',
         ]);
 
         $cart = Session::get('pos_cart', []);
@@ -573,8 +576,8 @@ public function addCustomToCart(Request $request)
         if ($request->delivery_method === 'delivery' && $request->delivery_distance) {
             $distanceStr = str_replace(',', '.', $request->delivery_distance);
             $distance = floatval($distanceStr);
-            $feePerKm = floatval(\App\Models\Setting::get('delivery_fee_per_km', 3000));
-            $minFee = floatval(\App\Models\Setting::get('delivery_min_fee', 15000));
+            $feePerKm = floatval(Setting::get('delivery_fee_per_km', 3000));
+            $minFee = floatval(Setting::get('delivery_min_fee', 15000));
 
             if ($distance <= 1) {
                 $deliveryFee = 0;
@@ -601,12 +604,12 @@ public function addCustomToCart(Request $request)
             $prefix = 'PJL';
 
             if ($request->scheduled_at) {
-                if (\Carbon\Carbon::parse($request->scheduled_at)->isAfter(now()->addHours(3))) {
+                if (Carbon::parse($request->scheduled_at)->isAfter(now()->addHours(3))) {
                     $prefix = 'PES';
                 }
             }
 
-            $latestOrder = Order::where('order_number', 'REGEXP', '^' . $prefix . '[0-9]+$')
+            $latestOrder = Order::where('order_number', 'REGEXP', '^'.$prefix.'[0-9]+$')
                 ->select('order_number')
                 ->orderByRaw("
                     CAST(
@@ -629,7 +632,7 @@ public function addCustomToCart(Request $request)
                 $newNumber = '001';
             }
 
-            $orderNumber = $prefix . $newNumber;
+            $orderNumber = $prefix.$newNumber;
 
             $order = Order::create([
                 'order_number' => $orderNumber,
@@ -638,7 +641,7 @@ public function addCustomToCart(Request $request)
                 'recipient_name' => $request->recipient_name,
                 'recipient_phone' => $request->recipient_phone,
                 'delivery_method' => $request->delivery_method,
-                'delivery_address' => ($request->map_address ? $request->map_address . ' - Detail: ' : '') . $request->detail_address,
+                'delivery_address' => ($request->map_address ? $request->map_address.' - Detail: ' : '').$request->detail_address,
                 'delivery_distance' => $request->delivery_distance,
                 'delivery_fee' => $deliveryFee,
                 'scheduled_at' => $request->scheduled_at,
@@ -648,15 +651,15 @@ public function addCustomToCart(Request $request)
                 'status' => 'processing',
                 'source' => 'offline',
                 'handled_by' => session('pos_florist'),
-                'user_id' => Auth::id() ?? null
+                'user_id' => Auth::id() ?? null,
             ]);
 
             foreach ($cart as $key => $item) {
                 $productId = in_array($item['type'], ['product', 'product_variant']) ? $item['id'] : null;
                 $finalName = $item['name'];
 
-                if ($item['type'] === 'custom' && !empty($item['notes'])) {
-                    $finalName .= " (Catatan: " . $item['notes'] . ")";
+                if ($item['type'] === 'custom' && ! empty($item['notes'])) {
+                    $finalName .= ' (Catatan: '.$item['notes'].')';
                 }
 
                 $orderItem = OrderItem::create([
@@ -667,7 +670,7 @@ public function addCustomToCart(Request $request)
                     'price' => $item['price'],
                     'subtotal' => $item['price'] * $item['qty'],
                     'is_rented' => $item['is_rented'] ?? false,
-                    'rental_duration' => $item['rental_duration'] ?? null
+                    'rental_duration' => $item['rental_duration'] ?? null,
                 ]);
 
                 if ($item['type'] === 'product') {
@@ -687,10 +690,10 @@ public function addCustomToCart(Request $request)
                                 'material_name' => $comp->material ? $comp->material->name : 'Bahan',
                                 'qty' => $qtyToDeduct,
                                 'unit_price' => $componentPrice,
-                                'subtotal' => $componentPrice * $qtyToDeduct
+                                'subtotal' => $componentPrice * $qtyToDeduct,
                             ]);
                         }
-                        
+
                         // Auto-hide if it's an artificial flower
                         if ($product->categories()->where('slug', 'bunga-artificial')->exists()) {
                             $product->is_active = false;
@@ -701,7 +704,7 @@ public function addCustomToCart(Request $request)
                     foreach ($item['components'] ?? [] as $comp) {
                         $qtyToDeduct = $comp['qty'] * $item['qty'];
 
-                        if (!empty($comp['material_id'])) {
+                        if (! empty($comp['material_id'])) {
                             $this->deductMaterial($comp['material_id'], $qtyToDeduct, $order->order_number);
                         }
 
@@ -710,10 +713,10 @@ public function addCustomToCart(Request $request)
                             'material_name' => $comp['name'] ?? 'Bahan',
                             'qty' => $qtyToDeduct,
                             'unit_price' => $comp['unit_price'] ?? ($comp['price'] ?? 0),
-                            'subtotal' => ($comp['unit_price'] ?? ($comp['price'] ?? 0)) * $qtyToDeduct
+                            'subtotal' => ($comp['unit_price'] ?? ($comp['price'] ?? 0)) * $qtyToDeduct,
                         ]);
                     }
-                    
+
                     $product = Product::find($item['id']);
                     if ($product && $product->categories()->where('slug', 'bunga-artificial')->exists()) {
                         $product->is_active = false;
@@ -728,13 +731,13 @@ public function addCustomToCart(Request $request)
                         'material_name' => $item['name'],
                         'qty' => $qtyToDeduct,
                         'unit_price' => $item['price'],
-                        'subtotal' => $item['price'] * $qtyToDeduct
+                        'subtotal' => $item['price'] * $qtyToDeduct,
                     ]);
                 } elseif ($item['type'] === 'custom') {
                     foreach ($item['components'] as $comp) {
                         $qtyToDeduct = $comp['qty'] * $item['qty'];
 
-                        if (!empty($comp['material_id'])) {
+                        if (! empty($comp['material_id'])) {
                             $this->deductMaterial($comp['material_id'], $qtyToDeduct, $order->order_number);
                         }
 
@@ -743,7 +746,7 @@ public function addCustomToCart(Request $request)
                             'material_name' => $comp['name'] ?? 'Bahan',
                             'qty' => $qtyToDeduct,
                             'unit_price' => $comp['unit_price'] ?? ($comp['price'] ?? 0),
-                            'subtotal' => ($comp['unit_price'] ?? ($comp['price'] ?? 0)) * $qtyToDeduct
+                            'subtotal' => ($comp['unit_price'] ?? ($comp['price'] ?? 0)) * $qtyToDeduct,
                         ]);
                     }
                 }
@@ -756,7 +759,7 @@ public function addCustomToCart(Request $request)
                 'status' => 'verified',
                 'verified_by' => Auth::id() ?? null,
                 'verified_at' => now(),
-                'reference_number' => 'POS-' . time()
+                'reference_number' => 'POS-'.time(),
             ]);
 
             DB::commit();
@@ -767,13 +770,13 @@ public function addCustomToCart(Request $request)
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return redirect()->route('pos.index')->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
+            return redirect()->route('pos.index')->with('error', 'Terjadi kesalahan sistem: '.$e->getMessage());
         }
     }
 
-    private function deductMaterial(int|null $materialId, int $qty, string $orderNumber)
+    private function deductMaterial(?int $materialId, int $qty, string $orderNumber)
     {
-        if (!$materialId) {
+        if (! $materialId) {
             return;
         }
 
@@ -796,7 +799,7 @@ public function addCustomToCart(Request $request)
                 'qty' => $qtyToDeduct,
                 'stock_before' => $stockBefore,
                 'stock_after' => $stockAfter,
-                'notes' => "Penjualan via POS - Order: " . $orderNumber
+                'notes' => 'Penjualan via POS - Order: '.$orderNumber,
             ]);
         }
     }

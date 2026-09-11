@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Order;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -13,7 +13,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $today = Carbon::today();
-        
+
         $stats = [];
 
         if (in_array($user->role, ['admin', 'owner', 'it support', 'asmen'])) {
@@ -38,7 +38,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'role' => $user->role,
-            'stats' => $stats
+            'stats' => $stats,
         ]);
     }
 }

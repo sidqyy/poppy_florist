@@ -21,12 +21,14 @@ class Product extends Model
     public function getFormattedPriceAttribute()
     {
         if ($this->price_type === 'range' && $this->max_price) {
-            return 'Rp ' . number_format($this->total_price, 0, ',', '.') . ' - Rp ' . number_format($this->max_price, 0, ',', '.');
+            return 'Rp '.number_format($this->total_price, 0, ',', '.').' - Rp '.number_format($this->max_price, 0, ',', '.');
         }
-        return 'Rp ' . number_format($this->total_price, 0, ',', '.');
+
+        return 'Rp '.number_format($this->total_price, 0, ',', '.');
     }
+
     public function sizes()
-{
-    return $this->hasMany(ProductSize::class);
-}
+    {
+        return $this->hasMany(ProductSize::class);
+    }
 }

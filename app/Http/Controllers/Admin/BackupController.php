@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\AuditService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 class BackupController extends Controller
 {
@@ -12,27 +15,27 @@ class BackupController extends Controller
     {
         $backupPath = storage_path('app/backups');
 
-        if (!file_exists($backupPath)) {
+        if (! file_exists($backupPath)) {
             mkdir($backupPath, 0755, true);
         }
 
-        $files = glob($backupPath . DIRECTORY_SEPARATOR . '*.sql');
+        $files = glob($backupPath.DIRECTORY_SEPARATOR.'*.sql');
 
         $backups = [];
 
         foreach ($files as $file) {
 
-            if (!is_file($file)) {
+            if (! is_file($file)) {
                 continue;
             }
 
             $backups[] = [
                 'name' => basename($file),
                 'size' => $this->formatSizeUnits(filesize($file)),
-                'last_modified' => \Carbon\Carbon::createFromTimestamp(
+                'last_modified' => Carbon::createFromTimestamp(
                     filemtime($file)
                 ),
-                'path' => $file
+                'path' => $file,
             ];
         }
 
@@ -51,38 +54,38 @@ class BackupController extends Controller
 
             $output = Artisan::output();
 
-            \App\Services\AuditService::log(
+            AuditService::log(
                 'Membuat Backup Database Manual'
             );
 
             return back()->with(
                 'success',
-                'Backup berhasil dilakukan. ' . $output
+                'Backup berhasil dilakukan. '.$output
             );
 
         } catch (\Exception $e) {
 
             return back()->withErrors([
-                'error' => 'Gagal melakukan backup: ' . $e->getMessage()
+                'error' => 'Gagal melakukan backup: '.$e->getMessage(),
             ]);
         }
     }
 
     public function download($fileName)
     {
-        $path = storage_path('app/backups/' . $fileName);
+        $path = storage_path('app/backups/'.$fileName);
 
-        if (!file_exists($path)) {
+        if (! file_exists($path)) {
             return back()->withErrors([
-                'error' => 'File backup tidak ditemukan.'
+                'error' => 'File backup tidak ditemukan.',
             ]);
         }
 
-        \App\Services\AuditService::log(
+        AuditService::log(
             'Mengunduh File Backup',
             null,
             [
-                'file' => $fileName
+                'file' => $fileName,
             ]
         );
 
@@ -92,7 +95,7 @@ class BackupController extends Controller
     public function restore(Request $request)
     {
         $request->validate([
-            'backup_file' => 'required|file|mimetypes:text/plain,application/sql,text/x-sql|max:50000'
+            'backup_file' => 'required|file|mimetypes:text/plain,application/sql,text/x-sql|max:50000',
         ]);
 
         try {
@@ -103,45 +106,45 @@ class BackupController extends Controller
                 $file->getRealPath()
             );
 
-            \Illuminate\Support\Facades\DB::unprepared(
+            DB::unprepared(
                 $sqlContent
             );
 
-            \App\Services\AuditService::log(
+            AuditService::log(
                 'Melakukan Restore Database',
                 null,
                 [
-                    'file' => $file->getClientOriginalName()
+                    'file' => $file->getClientOriginalName(),
                 ]
             );
 
             return back()->with(
                 'success',
-                'Database berhasil direstore dari file ' .
+                'Database berhasil direstore dari file '.
                 $file->getClientOriginalName()
             );
 
         } catch (\Exception $e) {
 
             return back()->withErrors([
-                'error' => 'Gagal melakukan restore: ' . $e->getMessage()
+                'error' => 'Gagal melakukan restore: '.$e->getMessage(),
             ]);
         }
     }
 
     public function destroy($fileName)
     {
-        $path = storage_path('app/backups/' . $fileName);
+        $path = storage_path('app/backups/'.$fileName);
 
         if (file_exists($path)) {
 
             unlink($path);
 
-            \App\Services\AuditService::log(
+            AuditService::log(
                 'Menghapus File Backup',
                 null,
                 [
-                    'file' => $fileName
+                    'file' => $fileName,
                 ]
             );
 
@@ -152,7 +155,7 @@ class BackupController extends Controller
         }
 
         return back()->withErrors([
-            'error' => 'File backup tidak ditemukan.'
+            'error' => 'File backup tidak ditemukan.',
         ]);
     }
 
@@ -163,29 +166,29 @@ class BackupController extends Controller
             $bytes = number_format(
                 $bytes / 1073741824,
                 2
-            ) . ' GB';
+            ).' GB';
 
         } elseif ($bytes >= 1048576) {
 
             $bytes = number_format(
                 $bytes / 1048576,
                 2
-            ) . ' MB';
+            ).' MB';
 
         } elseif ($bytes >= 1024) {
 
             $bytes = number_format(
                 $bytes / 1024,
                 2
-            ) . ' KB';
+            ).' KB';
 
         } elseif ($bytes > 1) {
 
-            $bytes = $bytes . ' bytes';
+            $bytes = $bytes.' bytes';
 
         } elseif ($bytes == 1) {
 
-            $bytes = $bytes . ' byte';
+            $bytes = $bytes.' byte';
 
         } else {
 

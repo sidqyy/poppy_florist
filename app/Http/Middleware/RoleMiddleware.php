@@ -4,8 +4,8 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
@@ -16,7 +16,7 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect('/login');
         }
 
@@ -36,7 +36,7 @@ class RoleMiddleware
             return $next($request);
         }
 
-        $redirectPath = '/' . $userRole;
+        $redirectPath = '/'.$userRole;
         if (in_array($userRole, ['asmen', 'it support'])) {
             $redirectPath = '/admin';
         }

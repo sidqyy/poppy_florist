@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Product;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Setting;
-use Illuminate\Support\Str;
+use App\Models\Product;
+use Illuminate\Http\Request;
 
 class KioskController extends Controller
 {
@@ -20,7 +18,7 @@ class KioskController extends Controller
     {
         $products = Product::where('is_available', true)->get();
         $cart = session()->get('kiosk_cart', []);
-        
+
         $totalItems = 0;
         $totalPrice = 0;
         foreach ($cart as $item) {
@@ -36,47 +34,50 @@ class KioskController extends Controller
         $product = Product::findOrFail($request->product_id);
         $cart = session()->get('kiosk_cart', []);
 
-        if(isset($cart[$product->id])) {
+        if (isset($cart[$product->id])) {
             $cart[$product->id]['qty']++;
         } else {
             $cart[$product->id] = [
-                "name" => $product->name,
-                "qty" => 1,
-                "price" => $product->price,
-                "image" => $product->image
+                'name' => $product->name,
+                'qty' => 1,
+                'price' => $product->price,
+                'image' => $product->image,
             ];
         }
 
         session()->put('kiosk_cart', $cart);
+
         return redirect()->back();
     }
 
     public function updateCart(Request $request)
     {
         $cart = session()->get('kiosk_cart', []);
-        if($request->id && $request->qty) {
-            $cart[$request->id]["qty"] = $request->qty;
+        if ($request->id && $request->qty) {
+            $cart[$request->id]['qty'] = $request->qty;
             session()->put('kiosk_cart', $cart);
         }
+
         return redirect()->back();
     }
 
     public function removeFromCart(Request $request)
     {
-        if($request->id) {
+        if ($request->id) {
             $cart = session()->get('kiosk_cart');
-            if(isset($cart[$request->id])) {
+            if (isset($cart[$request->id])) {
                 unset($cart[$request->id]);
                 session()->put('kiosk_cart', $cart);
             }
         }
+
         return redirect()->back();
     }
 
     public function checkout()
     {
         $cart = session()->get('kiosk_cart', []);
-        if(empty($cart)) {
+        if (empty($cart)) {
             return redirect()->route('kiosk.catalog');
         }
 
@@ -96,7 +97,7 @@ class KioskController extends Controller
         ]);
 
         $cart = session()->get('kiosk_cart', []);
-        if(empty($cart)) {
+        if (empty($cart)) {
             return redirect()->route('kiosk.catalog');
         }
 
@@ -107,14 +108,14 @@ class KioskController extends Controller
 
         // Generate Order Number
         $prefix = 'ORD-';
-        $latestOrder = Order::where('order_number', 'REGEXP', '^' . $prefix . '[0-9]+$')->orderBy('id', 'desc')->first();
+        $latestOrder = Order::where('order_number', 'REGEXP', '^'.$prefix.'[0-9]+$')->orderBy('id', 'desc')->first();
         if ($latestOrder) {
             $lastNumber = intval(substr($latestOrder->order_number, 4));
             $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
         } else {
             $newNumber = '00001';
         }
-        $orderNumber = $prefix . $newNumber;
+        $orderNumber = $prefix.$newNumber;
 
         $order = Order::create([
             'order_number' => $orderNumber,
@@ -124,7 +125,7 @@ class KioskController extends Controller
             'status' => 'pending_payment',
             'delivery_method' => 'pickup', // Kiosk orders are usually picked up
             'type' => 'offline',
-            'source' => 'kiosk'
+            'source' => 'kiosk',
         ]);
 
         foreach ($cart as $id => $item) {
@@ -134,7 +135,7 @@ class KioskController extends Controller
                 'product_name' => $item['name'],
                 'price' => $item['price'],
                 'qty' => $item['qty'],
-                'subtotal' => $item['price'] * $item['qty']
+                'subtotal' => $item['price'] * $item['qty'],
             ]);
         }
 

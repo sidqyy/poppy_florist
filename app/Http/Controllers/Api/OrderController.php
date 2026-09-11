@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Order;
+use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
@@ -14,7 +14,7 @@ class OrderController extends Controller
         $orders = Order::where('status', 'pending_dapur')
             ->orderBy('created_at', 'asc')
             ->get();
-            
+
         return response()->json(['orders' => $orders]);
     }
 
@@ -24,7 +24,7 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
         $order->status = 'selesai';
         $order->save();
-        
+
         return response()->json(['success' => true]);
     }
 
@@ -34,10 +34,10 @@ class OrderController extends Controller
         $request->validate([
             'customer_name' => 'required',
             'order_type' => 'required',
-            'total_amount' => 'required|numeric'
+            'total_amount' => 'required|numeric',
         ]);
 
-        $order = new Order();
+        $order = new Order;
         // Since we are simplifying, we only fill these basic fields.
         // In real app, we need order items. For kiosk simulation we just save the main row.
         $order->customer_name = $request->customer_name;

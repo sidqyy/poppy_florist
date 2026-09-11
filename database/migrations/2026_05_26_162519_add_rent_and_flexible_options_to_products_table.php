@@ -29,7 +29,7 @@ return new class extends Migration
                 'is_rentable',
                 'rental_price_per_day',
                 'has_flexible_components',
-                'max_flexible_components'
+                'max_flexible_components',
             ]);
         });
     }

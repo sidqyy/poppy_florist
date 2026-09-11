@@ -2,7 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Category;
+use App\Models\Material;
+use App\Models\Product;
+use App\Models\ProductComponent;
+use App\Models\Setting;
 use Illuminate\Database\Seeder;
 
 class MasterDataSeeder extends Seeder
@@ -20,7 +24,7 @@ class MasterDataSeeder extends Seeder
             ['name' => 'Duka Cita', 'slug' => 'duka-cita', 'description' => 'Bunga papan duka cita'],
         ];
         foreach ($categories as $cat) {
-            \App\Models\Category::create($cat);
+            Category::create($cat);
         }
 
         // Settings
@@ -30,7 +34,7 @@ class MasterDataSeeder extends Seeder
             ['key' => 'store_address', 'value' => 'Jl. Anang Adenansi No.2, Kamboja, Banjarmasin', 'description' => 'Alamat Lengkap Toko'],
         ];
         foreach ($settings as $setting) {
-            \App\Models\Setting::create($setting);
+            Setting::create($setting);
         }
 
         // Materials
@@ -44,14 +48,14 @@ class MasterDataSeeder extends Seeder
             ['name' => 'Jasa Rangkai Basic', 'type' => 'service', 'unit' => 'jasa', 'price' => 35000, 'stock' => 9999],
         ];
         foreach ($materials as $mat) {
-            \App\Models\Material::create($mat);
+            Material::create($mat);
         }
 
         // Dummy Product
-        $product = \App\Models\Product::create([
+        $product = Product::create([
             'name' => 'Bucket Mawar Merah Basic',
             'description' => 'Bucket simpel 5 mawar merah',
-            'total_price' => 0 // Akan dihitung nanti
+            'total_price' => 0, // Akan dihitung nanti
         ]);
         $product->categories()->attach(1);
 
@@ -65,19 +69,19 @@ class MasterDataSeeder extends Seeder
 
         $totalPrice = 0;
         foreach ($components as $comp) {
-            $material = \App\Models\Material::find($comp['material_id']);
+            $material = Material::find($comp['material_id']);
             $subtotal = $comp['qty'] * $material->price;
             $totalPrice += $subtotal;
 
-            \App\Models\ProductComponent::create([
+            ProductComponent::create([
                 'product_id' => $product->id,
                 'material_id' => $material->id,
                 'qty' => $comp['qty'],
                 'unit_price' => $material->price,
-                'subtotal' => $subtotal
+                'subtotal' => $subtotal,
             ]);
         }
-        
+
         $product->update(['total_price' => $totalPrice]); // 129k
     }
 }

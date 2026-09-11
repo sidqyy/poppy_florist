@@ -3,24 +3,26 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Category;
-use App\Models\Product;
+use App\Models\Material;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderItemComponent;
 use App\Models\Payment;
-use App\Models\Material;
+use App\Models\Product;
+use App\Models\Setting;
 use App\Models\StockMutation;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PosApiController extends Controller
 {
     public function getCategories()
     {
         $categories = Category::all();
+
         return response()->json($categories);
     }
 
@@ -31,7 +33,7 @@ class PosApiController extends Controller
                 'categories',
                 'sizes',
                 'sizes.variants',
-                'components.material'
+                'components.material',
             ]);
 
         if ($request->has('category') && $request->category != '') {
@@ -41,6 +43,7 @@ class PosApiController extends Controller
         }
 
         $products = $query->get();
+
         return response()->json($products);
     }
 
@@ -50,7 +53,7 @@ class PosApiController extends Controller
             ->orderBy('type')
             ->orderBy('name')
             ->get();
-            
+
         return response()->json($materials);
     }
 
@@ -85,8 +88,8 @@ class PosApiController extends Controller
         if ($request->delivery_method === 'delivery' && $request->delivery_distance) {
             $distanceStr = str_replace(',', '.', $request->delivery_distance);
             $distance = floatval($distanceStr);
-            $feePerKm = floatval(\App\Models\Setting::get('delivery_fee_per_km', 3000));
-            $minFee = floatval(\App\Models\Setting::get('delivery_min_fee', 15000));
+            $feePerKm = floatval(Setting::get('delivery_fee_per_km', 3000));
+            $minFee = floatval(Setting::get('delivery_min_fee', 15000));
 
             if ($distance > 1) {
                 $roundedDistance = ceil($distance);
@@ -114,7 +117,7 @@ class PosApiController extends Controller
                 }
             }
 
-            $latestOrder = Order::where('order_number', 'like', $prefix . '%')
+            $latestOrder = Order::where('order_number', 'like', $prefix.'%')
                 ->select('order_number')
                 ->orderByRaw("CAST(REGEXP_REPLACE(order_number, '[^0-9]', '') AS UNSIGNED) DESC")
                 ->lockForUpdate()
@@ -127,7 +130,7 @@ class PosApiController extends Controller
                 $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
             }
 
-            $orderNumber = $prefix . $newNumber;
+            $orderNumber = $prefix.$newNumber;
 
             $order = Order::create([
                 'order_number' => $orderNumber,
@@ -146,7 +149,7 @@ class PosApiController extends Controller
                 'status' => 'processing',
                 'source' => 'offline',
                 'handled_by' => 'Kiosk Walk-in',
-                'user_id' => Auth::id() ?? null
+                'user_id' => Auth::id() ?? null,
             ]);
 
             foreach ($cart as $item) {
@@ -164,7 +167,7 @@ class PosApiController extends Controller
                     'price' => $price,
                     'subtotal' => $price * $qty,
                     'is_rented' => false,
-                    'rental_duration' => null
+                    'rental_duration' => null,
                 ]);
 
                 if ($type === 'product' && $productId) {
@@ -178,39 +181,39 @@ class PosApiController extends Controller
                                 'order_item_id' => $orderItem->id,
                                 'material_name' => $comp->material ? $comp->material->name : 'Bahan',
                                 'qty' => $qtyToDeduct,
-                                'unit_price' => 0, 
-                                'subtotal' => 0
+                                'unit_price' => 0,
+                                'subtotal' => 0,
                             ]);
                         }
                     }
                 } elseif ($type === 'material') {
                     $materialId = $item['id'];
                     $this->deductMaterial($materialId, $qty, $order->order_number);
-                    
+
                     $mat = Material::find($materialId);
                     OrderItemComponent::create([
                         'order_item_id' => $orderItem->id,
                         'material_name' => $mat ? $mat->name : 'Bahan Eceran',
                         'qty' => $qty,
                         'unit_price' => 0,
-                        'subtotal' => 0
+                        'subtotal' => 0,
                     ]);
                 } elseif ($type === 'custom') {
                     $components = $item['components'] ?? [];
                     foreach ($components as $comp) {
                         $materialId = $comp['material_id'] ?? null;
                         $compQty = ($comp['qty'] ?? 1) * $qty;
-                        
+
                         if ($materialId) {
                             $this->deductMaterial($materialId, $compQty, $order->order_number);
                         }
-                        
+
                         OrderItemComponent::create([
                             'order_item_id' => $orderItem->id,
                             'material_name' => $comp['name'] ?? 'Bahan Custom',
                             'qty' => $compQty,
                             'unit_price' => 0,
-                            'subtotal' => 0
+                            'subtotal' => 0,
                         ]);
                     }
                 }
@@ -223,7 +226,7 @@ class PosApiController extends Controller
                 'status' => 'verified',
                 'verified_by' => Auth::id() ?? null,
                 'verified_at' => now(),
-                'reference_number' => 'POS-KIOSK-' . time()
+                'reference_number' => 'POS-KIOSK-'.time(),
             ]);
 
             DB::commit();
@@ -231,18 +234,21 @@ class PosApiController extends Controller
             return response()->json([
                 'message' => 'Pesanan berhasil dibuat!',
                 'order_id' => $order->id,
-                'order_number' => $order->order_number
+                'order_number' => $order->order_number,
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => 'Terjadi kesalahan sistem: '.$e->getMessage()], 500);
         }
     }
 
     private function deductMaterial($materialId, $qty, $orderNumber)
     {
-        if (!$materialId) return;
+        if (! $materialId) {
+            return;
+        }
         $material = Material::find($materialId);
         if ($material) {
             $stockBefore = $material->stock;
@@ -259,7 +265,7 @@ class PosApiController extends Controller
                 'qty' => $qtyToDeduct,
                 'stock_before' => $stockBefore,
                 'stock_after' => $stockAfter,
-                'notes' => "Penjualan via POS Kiosk - Order: " . $orderNumber
+                'notes' => 'Penjualan via POS Kiosk - Order: '.$orderNumber,
             ]);
         }
     }

@@ -11,11 +11,11 @@ class ProductVariant extends Model
         'variant_name',
         'price',
         'image',
-        'is_active'
+        'is_active',
     ];
 
     public function size()
     {
-        return $this->belongsTo(ProductSize::class,'product_size_id');
+        return $this->belongsTo(ProductSize::class, 'product_size_id');
     }
 }

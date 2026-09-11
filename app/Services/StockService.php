@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Product;
 use App\Models\Material;
+use App\Models\Product;
 use App\Models\StockMutation;
-use Illuminate\Support\Facades\DB;
 use Exception;
+use Illuminate\Support\Facades\DB;
 
 class StockService
 {
@@ -14,11 +14,11 @@ class StockService
      * Mengurangi stok bahan baku berdasarkan komponen sebuah produk.
      * Fungsi ini disiapkan untuk dipanggil dari modul Pemesanan (Tahap 5).
      *
-     * @param Product $product
-     * @param int $productQty Jumlah produk yang dipesan
-     * @param int $userId ID Kasir/Florist
-     * @param string $notes Catatan mutasi
+     * @param  int  $productQty  Jumlah produk yang dipesan
+     * @param  int  $userId  ID Kasir/Florist
+     * @param  string  $notes  Catatan mutasi
      * @return bool
+     *
      * @throws Exception
      */
     public function reduceStockForProduct(Product $product, int $productQty, int $userId, string $notes = 'Digunakan untuk pesanan')
@@ -48,10 +48,11 @@ class StockService
                     'qty' => $totalQtyNeeded,
                     'stock_before' => $stockBefore,
                     'stock_after' => $stockAfter,
-                    'notes' => $notes
+                    'notes' => $notes,
                 ]);
             }
             DB::commit();
+
             return true;
         } catch (Exception $e) {
             DB::rollBack();
@@ -85,10 +86,11 @@ class StockService
                 'stock_before' => $stockBefore,
                 'stock_after' => $stockAfter,
                 'notes' => $notes,
-                'expires_at' => $expiresAt
+                'expires_at' => $expiresAt,
             ]);
 
             DB::commit();
+
             return true;
         } catch (Exception $e) {
             DB::rollBack();

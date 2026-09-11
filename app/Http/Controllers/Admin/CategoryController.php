@@ -3,14 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Category;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
     public function index()
     {
         $categories = Category::withCount('products')->get();
+
         return view('admin.categories.index', compact('categories'));
     }
 
@@ -23,19 +25,21 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
         ]);
-        
+
         $validated['is_active'] = $request->has('is_active');
-        $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']);
-        
+        $validated['slug'] = Str::slug($validated['name']);
+
         Category::create($validated);
+
         return redirect()->route('admin.categories.index')->with('success', 'Kategori (Occasion) berhasil ditambahkan.');
     }
 
     public function edit(string $id)
     {
         $category = Category::findOrFail($id);
+
         return view('admin.categories.edit', compact('category'));
     }
 
@@ -43,15 +47,15 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
         ]);
-        
+
         $validated['is_active'] = $request->has('is_active');
-        $validated['slug'] = \Illuminate\Support\Str::slug($validated['name']);
-        
+        $validated['slug'] = Str::slug($validated['name']);
+
         $category = Category::findOrFail($id);
         $category->update($validated);
-        
+
         return redirect()->route('admin.categories.index')->with('success', 'Kategori (Occasion) berhasil diperbarui.');
     }
 
@@ -59,6 +63,7 @@ class CategoryController extends Controller
     {
         $category = Category::findOrFail($id);
         $category->delete();
+
         return redirect()->route('admin.categories.index')->with('success', 'Kategori (Occasion) berhasil dihapus.');
     }
 }

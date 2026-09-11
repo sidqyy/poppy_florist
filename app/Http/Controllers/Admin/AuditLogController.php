@@ -14,11 +14,11 @@ class AuditLogController extends Controller
 
         if ($request->filled('q')) {
             $q = $request->q;
-            $query->where(function($b) use ($q) {
+            $query->where(function ($b) use ($q) {
                 $b->where('action', 'like', "%{$q}%")
-                  ->orWhereHas('user', function($u) use ($q) {
-                      $u->where('name', 'like', "%{$q}%");
-                  });
+                    ->orWhereHas('user', function ($u) use ($q) {
+                        $u->where('name', 'like', "%{$q}%");
+                    });
             });
         }
 

@@ -10,7 +10,7 @@ class CheckPosFlorist
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!session()->has('pos_florist')) {
+        if (! session()->has('pos_florist')) {
             return redirect()->route('pos.login');
         }
 

@@ -10,10 +10,10 @@ class AuditService
     /**
      * Log an activity
      *
-     * @param string $action Deskripsi aktivitas (contoh: "Membuat Pesanan")
-     * @param array|null $oldValues Data sebelum diubah
-     * @param array|null $newValues Data sesudah diubah atau data baru
-     * @param int|null $userId ID user yang melakukan aksi (default: Auth user)
+     * @param  string  $action  Deskripsi aktivitas (contoh: "Membuat Pesanan")
+     * @param  array|null  $oldValues  Data sebelum diubah
+     * @param  array|null  $newValues  Data sesudah diubah atau data baru
+     * @param  int|null  $userId  ID user yang melakukan aksi (default: Auth user)
      */
     public static function log(string $action, $oldValues = null, $newValues = null, $userId = null)
     {

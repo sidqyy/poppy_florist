@@ -3,32 +3,39 @@
 namespace App\Http\Controllers\Marketing;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
+use App\Models\Material;
+use App\Models\Product;
+use App\Models\ProductComponent;
+use App\Models\ProductSize;
+use App\Models\ProductVariant;
+use App\Services\ImageOptimizerService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $products = \App\Models\Product::with([
+        $products = Product::with([
             'categories',
-            'sizes.variants'
+            'sizes.variants',
         ])
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->search;
 
                 $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('description', 'like', '%' . $search . '%')
+                    $q->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('description', 'like', '%'.$search.'%')
                         ->orWhereHas('categories', function ($cat) use ($search) {
-                            $cat->where('name', 'like', '%' . $search . '%');
+                            $cat->where('name', 'like', '%'.$search.'%');
                         })
                         ->orWhereHas('sizes', function ($size) use ($search) {
-                            $size->where('size_name', 'like', '%' . $search . '%');
+                            $size->where('size_name', 'like', '%'.$search.'%');
                         })
                         ->orWhereHas('sizes.variants', function ($variant) use ($search) {
-                            $variant->where('variant_name', 'like', '%' . $search . '%');
+                            $variant->where('variant_name', 'like', '%'.$search.'%');
                         });
                 });
             })
@@ -41,11 +48,11 @@ class ProductController extends Controller
 
     public function create()
     {
-        $categories = \App\Models\Category::where('is_active', true)
+        $categories = Category::where('is_active', true)
             ->orderBy('name')
             ->get();
 
-        $materials = \App\Models\Material::where('is_active', true)
+        $materials = Material::where('is_active', true)
             ->orderBy('type')
             ->orderBy('name')
             ->get();
@@ -57,11 +64,11 @@ class ProductController extends Controller
     {
         if ($request->has('components')) {
             $filtered = array_filter($request->components, function ($item) {
-                return !empty($item['material_id']);
+                return ! empty($item['material_id']);
             });
 
             $request->merge([
-                'components' => !empty($filtered) ? $filtered : null
+                'components' => ! empty($filtered) ? $filtered : null,
             ]);
         }
 
@@ -95,7 +102,7 @@ class ProductController extends Controller
             $imagePath = $this->convertToWebpAndStore($request->file('image'));
         }
 
-        $product = \App\Models\Product::create([
+        $product = Product::create([
             'name' => $request->name,
             'description' => $request->description,
             'image' => $imagePath,
@@ -107,7 +114,7 @@ class ProductController extends Controller
             'is_rentable' => $request->has('is_rentable'),
             'rental_price_per_day' => $request->rental_price_per_day,
             'has_flexible_components' => $request->has('has_flexible_components'),
-            'max_flexible_components' => $request->max_flexible_components
+            'max_flexible_components' => $request->max_flexible_components,
         ]);
 
         $product->categories()->sync($request->categories ?? []);
@@ -121,7 +128,7 @@ class ProductController extends Controller
         $url = route('marketing.products.index');
 
         if ($request->filled('page')) {
-            $url .= '?page=' . $request->page;
+            $url .= '?page='.$request->page;
         }
 
         return redirect($url)->with('success', 'Produk berhasil ditambahkan.');
@@ -129,17 +136,17 @@ class ProductController extends Controller
 
     public function edit(string $id)
     {
-        $product = \App\Models\Product::with([
+        $product = Product::with([
             'components.material',
             'categories',
-            'sizes.variants'
+            'sizes.variants',
         ])->findOrFail($id);
 
-        $categories = \App\Models\Category::where('is_active', true)
+        $categories = Category::where('is_active', true)
             ->orderBy('name')
             ->get();
 
-        $materials = \App\Models\Material::where('is_active', true)
+        $materials = Material::where('is_active', true)
             ->orderBy('type')
             ->orderBy('name')
             ->get();
@@ -149,15 +156,15 @@ class ProductController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $product = \App\Models\Product::with('sizes.variants')->findOrFail($id);
+        $product = Product::with('sizes.variants')->findOrFail($id);
 
         if ($request->has('components')) {
             $filtered = array_filter($request->components, function ($item) {
-                return !empty($item['material_id']);
+                return ! empty($item['material_id']);
             });
 
             $request->merge([
-                'components' => !empty($filtered) ? $filtered : null
+                'components' => ! empty($filtered) ? $filtered : null,
             ]);
         }
 
@@ -196,7 +203,7 @@ class ProductController extends Controller
             'is_rentable' => $request->has('is_rentable'),
             'rental_price_per_day' => $request->rental_price_per_day,
             'has_flexible_components' => $request->has('has_flexible_components'),
-            'max_flexible_components' => $request->max_flexible_components
+            'max_flexible_components' => $request->max_flexible_components,
         ];
 
         if ($request->hasFile('image')) {
@@ -225,7 +232,7 @@ class ProductController extends Controller
         $url = route('marketing.products.index');
 
         if ($request->filled('page')) {
-            $url .= '?page=' . $request->page;
+            $url .= '?page='.$request->page;
         }
 
         return redirect($url)->with('success', 'Produk berhasil diperbarui.');
@@ -233,7 +240,7 @@ class ProductController extends Controller
 
     public function destroy(Request $request, string $id)
     {
-        $product = \App\Models\Product::with('sizes.variants')->findOrFail($id);
+        $product = Product::with('sizes.variants')->findOrFail($id);
 
         if ($product->image && Storage::disk('public')->exists($product->image)) {
             Storage::disk('public')->delete($product->image);
@@ -246,41 +253,41 @@ class ProductController extends Controller
         $url = route('marketing.products.index');
 
         if ($request->filled('page')) {
-            $url .= '?page=' . $request->page;
+            $url .= '?page='.$request->page;
         }
 
         return redirect($url)->with('success', 'Produk berhasil dihapus.');
     }
 
-    private function syncComponents(\App\Models\Product $product, array $components)
+    private function syncComponents(Product $product, array $components)
     {
         foreach ($components as $comp) {
             if (empty($comp['material_id']) || empty($comp['qty'])) {
                 continue;
             }
 
-            $material = \App\Models\Material::find($comp['material_id']);
+            $material = Material::find($comp['material_id']);
 
-            if (!$material) {
+            if (! $material) {
                 continue;
             }
 
             $subtotal = $comp['qty'] * $material->price;
 
-            \App\Models\ProductComponent::create([
+            ProductComponent::create([
                 'product_id' => $product->id,
                 'material_id' => $material->id,
                 'qty' => $comp['qty'],
                 'unit_price' => $material->price,
                 'subtotal' => $subtotal,
-                'notes' => $comp['notes'] ?? null
+                'notes' => $comp['notes'] ?? null,
             ]);
         }
     }
 
-    private function syncSizesAndVariants(\App\Models\Product $product, ?array $sizes)
+    private function syncSizesAndVariants(Product $product, ?array $sizes)
     {
-        if (!$sizes || !is_array($sizes)) {
+        if (! $sizes || ! is_array($sizes)) {
             return;
         }
 
@@ -298,14 +305,14 @@ class ProductController extends Controller
                 $sizeImagePath = $this->convertToWebpAndStore($sizeData['image']);
             }
 
-            $size = \App\Models\ProductSize::create([
+            $size = ProductSize::create([
                 'product_id' => $product->id,
                 'size_name' => $sizeData['size_name'],
                 'image' => $sizeImagePath,
                 'is_active' => true,
             ]);
 
-            if (!empty($sizeData['variants']) && is_array($sizeData['variants'])) {
+            if (! empty($sizeData['variants']) && is_array($sizeData['variants'])) {
                 foreach ($sizeData['variants'] as $variantData) {
                     if (empty($variantData['variant_name'])) {
                         continue;
@@ -320,7 +327,7 @@ class ProductController extends Controller
                         $variantImagePath = $this->convertToWebpAndStore($variantData['image']);
                     }
 
-                    \App\Models\ProductVariant::create([
+                    ProductVariant::create([
                         'product_size_id' => $size->id,
                         'variant_name' => $variantData['variant_name'],
                         'price' => $variantData['price'] ?? 0,
@@ -332,7 +339,7 @@ class ProductController extends Controller
         }
     }
 
-    private function deleteOldSizeAndVariantImages(\App\Models\Product $product)
+    private function deleteOldSizeAndVariantImages(Product $product)
     {
         foreach ($product->sizes as $size) {
             if ($size->image && Storage::disk('public')->exists($size->image)) {
@@ -340,15 +347,15 @@ class ProductController extends Controller
             }
 
             foreach ($size->variants as $variant) {
-                if (!empty($variant->image) && Storage::disk('public')->exists($variant->image)) {
+                if (! empty($variant->image) && Storage::disk('public')->exists($variant->image)) {
                     Storage::disk('public')->delete($variant->image);
                 }
             }
         }
     }
 
-    private function convertToWebpAndStore(\Illuminate\Http\UploadedFile $file)
+    private function convertToWebpAndStore(UploadedFile $file)
     {
-        return \App\Services\ImageOptimizerService::uploadAndOptimize($file, 'products');
+        return ImageOptimizerService::uploadAndOptimize($file, 'products');
     }
 }

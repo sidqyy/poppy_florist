@@ -12,7 +12,7 @@ class AuditObserver
      */
     public function created($model): void
     {
-        if (!Auth::check() && !app()->runningInConsole()) {
+        if (! Auth::check() && ! app()->runningInConsole()) {
             return;
         }
 
@@ -28,7 +28,7 @@ class AuditObserver
      */
     public function updated($model): void
     {
-        if (!Auth::check() && !app()->runningInConsole()) {
+        if (! Auth::check() && ! app()->runningInConsole()) {
             return;
         }
 
@@ -60,7 +60,7 @@ class AuditObserver
      */
     public function deleted($model): void
     {
-        if (!Auth::check() && !app()->runningInConsole()) {
+        if (! Auth::check() && ! app()->runningInConsole()) {
             return;
         }
 
@@ -79,11 +79,11 @@ class AuditObserver
         if (isset($model->order_number)) {
             return $model->order_number;
         }
-        
+
         if (isset($model->name)) {
             return $model->name;
         }
 
-        return '#' . $model->id;
+        return '#'.$model->id;
     }
 }
