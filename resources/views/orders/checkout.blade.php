@@ -82,7 +82,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Ongkos Kirim (Rp)</label>
-                            <input type="number" name="delivery_fee" id="delivery_fee" readonly class="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg text-gray-600 outline-none font-bold">
+                            <input type="number" name="delivery_fee" id="delivery_fee" min="0" oninput="updateGrandTotal()" class="w-full px-4 py-2 border border-gray-200 bg-white rounded-lg text-gray-600 outline-none font-bold">
                         </div>
                     </div>
                     <div id="ongkir_message" class="text-xs font-bold text-red-500 mt-1 hidden"></div>

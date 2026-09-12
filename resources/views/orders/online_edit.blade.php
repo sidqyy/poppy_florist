@@ -259,7 +259,7 @@
 
                             <div>
                                 <label class="block text-sm font-bold text-gray-800 mb-1">Ongkir (Rp)</label>
-                                <input type="number" name="delivery_fee" id="delivery_fee" value="{{ old('delivery_fee', $order->delivery_fee) }}" readonly class="w-full px-4 py-2 border border-gray-300 bg-gray-50 rounded-lg text-gray-600 outline-none font-bold">
+                                <input type="number" name="delivery_fee" id="delivery_fee" value="{{ old('delivery_fee', $order->delivery_fee) }}" min="0" class="w-full px-4 py-2 border border-gray-300 bg-white rounded-lg text-gray-600 outline-none font-bold">
                             </div>
                         </div>
 

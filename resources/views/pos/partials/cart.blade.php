@@ -220,8 +220,8 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-1">Ongkos Kirim Otomatis</label>
-                                <input type="number" name="delivery_fee" id="pos_delivery_fee" value="0" readonly class="w-full bg-gray-200 border-none text-gray-600 rounded-lg outline-none p-3 font-bold">
+                                <label class="block text-sm font-bold text-gray-700 mb-1">Ongkos Kirim (Rp)</label>
+                                <input type="number" name="delivery_fee" id="pos_delivery_fee" value="0" min="0" oninput="updatePosGrandTotal()" class="w-full bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-florist-300 outline-none p-3 font-bold">
                             </div>
                         </div>
                         <div id="pos_ongkir_message" class="text-xs font-bold text-red-500 mt-1 hidden"></div>

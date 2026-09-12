@@ -93,6 +93,15 @@ class OrderController extends Controller
             'scheduled_at' => 'nullable|date',
             'payment_status' => 'required|in:unpaid,dp,paid_qris,paid_tf',
             'notes' => 'nullable|string',
+            'delivery_fee' => [
+                'nullable',
+                'numeric',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->delivery_method === 'delivery' && floatval($value) < 10000) {
+                        $fail('Ongkos kirim kurir minimal Rp 10.000.');
+                    }
+                },
+            ],
         ]);
 
         $product = Product::with('components.material')->findOrFail($request->product_id);
@@ -266,6 +275,15 @@ class OrderController extends Controller
             'components.*.qty' => 'nullable|integer|min:1',
             'components.*.price_type' => 'nullable|in:arrangement,stem',
             'components.*.color' => 'nullable|string|max:100',
+            'delivery_fee' => [
+                'nullable',
+                'numeric',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->delivery_method === 'delivery' && floatval($value) < 10000) {
+                        $fail('Ongkos kirim kurir minimal Rp 10.000.');
+                    }
+                },
+            ],
         ]);
 
         $imagePath = null;
@@ -546,6 +564,15 @@ class OrderController extends Controller
             'components.*.qty' => 'nullable|integer|min:1',
             'components.*.price_type' => 'nullable|in:arrangement,stem',
             'components.*.color' => 'nullable|string|max:100',
+            'delivery_fee' => [
+                'nullable',
+                'numeric',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->delivery_method === 'delivery' && floatval($value) < 10000) {
+                        $fail('Ongkos kirim kurir minimal Rp 10.000.');
+                    }
+                },
+            ],
         ]);
 
         $imagePath = $order->reference_image;

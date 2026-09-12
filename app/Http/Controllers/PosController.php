@@ -557,6 +557,15 @@ class PosController extends Controller
             'scheduled_at' => 'required|date',
             'payment_method' => 'required|in:cash,transfer,qris',
             'amount_tendered' => 'required|numeric|min:0',
+            'delivery_fee' => [
+                'nullable',
+                'numeric',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->delivery_method === 'delivery' && floatval($value) < 10000) {
+                        $fail('Ongkos kirim kurir minimal Rp 10.000.');
+                    }
+                },
+            ],
         ]);
 
         $cart = Session::get('pos_cart', []);
@@ -571,26 +580,7 @@ class PosController extends Controller
             $baseTotalAmount += $item['price'] * $item['qty'];
         }
 
-        $deliveryFee = 0;
-
-        if ($request->delivery_method === 'delivery' && $request->delivery_distance) {
-            $distanceStr = str_replace(',', '.', $request->delivery_distance);
-            $distance = floatval($distanceStr);
-            $feePerKm = floatval(Setting::get('delivery_fee_per_km', 3000));
-            $minFee = floatval(Setting::get('delivery_min_fee', 15000));
-
-            if ($distance <= 1) {
-                $deliveryFee = 0;
-            } else {
-                $roundedDistance = ceil($distance);
-                $extraKms = $roundedDistance - 1;
-                $deliveryFee = $minFee + (max(0, $extraKms - 1) * $feePerKm);
-
-                if ($deliveryFee > 0) {
-                    $deliveryFee = ceil($deliveryFee / 5000) * 5000;
-                }
-            }
-        }
+        $deliveryFee = floatval($request->delivery_fee ?? 0);
 
         $totalAmount = $baseTotalAmount + $deliveryFee;
 
