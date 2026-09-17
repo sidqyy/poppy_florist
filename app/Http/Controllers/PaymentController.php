@@ -20,14 +20,19 @@ class PaymentController extends Controller
         $request->validate([
             'amount' => 'required|numeric|min:1',
             'payment_method' => 'required|string',
-            'proof_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'proof_image' => 'nullable',
+            'proof_image.*' => 'image|mimes:jpeg,png,jpg|max:2048',
             'notes' => 'nullable|string',
         ]);
 
-        $imagePath = null;
+        $imagePath = [];
         if ($request->hasFile('proof_image')) {
-            $imagePath = ImageOptimizerService::uploadAndOptimize($request->file('proof_image'), 'payments');
+            $files = is_array($request->file('proof_image')) ? $request->file('proof_image') : [$request->file('proof_image')];
+            foreach ($files as $file) {
+                $imagePath[] = ImageOptimizerService::uploadAndOptimize($file, 'payments');
+            }
         }
+        $imagePath = count($imagePath) > 0 ? $imagePath : null;
 
         Payment::create([
             'order_id' => $order->id,
@@ -99,11 +104,16 @@ class PaymentController extends Controller
         $payment = Payment::findOrFail($paymentId);
 
         $request->validate([
-            'proof_image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'proof_image' => 'required',
+            'proof_image.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         if ($request->hasFile('proof_image')) {
-            $imagePath = ImageOptimizerService::uploadAndOptimize($request->file('proof_image'), 'payments');
+            $imagePath = is_array($payment->proof_image) ? $payment->proof_image : ($payment->proof_image ? [$payment->proof_image] : []);
+            $files = is_array($request->file('proof_image')) ? $request->file('proof_image') : [$request->file('proof_image')];
+            foreach ($files as $file) {
+                $imagePath[] = ImageOptimizerService::uploadAndOptimize($file, 'payments');
+            }
             $payment->update(['proof_image' => $imagePath]);
 
             return back()->with('success', 'Bukti pembayaran berhasil diunggah susulan.');

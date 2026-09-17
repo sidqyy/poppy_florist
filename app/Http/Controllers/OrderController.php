@@ -264,10 +264,12 @@ class OrderController extends Controller
             'delivery_address' => 'nullable|string',
             'scheduled_at' => 'required|date',
             'payment_status' => 'required|in:paid_qris,paid_tf,dp,unpaid',
-            'payment_proof' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:2048',
+            'payment_proof' => 'nullable',
+            'payment_proof.*' => 'file|mimes:jpeg,png,jpg,pdf|max:2048',
             'product_name' => 'required|string|max:255',
             'total_price' => 'required|numeric|min:0',
-            'reference_image' => 'nullable|image|max:2048',
+            'reference_image' => 'nullable',
+            'reference_image.*' => 'image|max:2048',
             'greeting_card' => 'nullable|string',
             'notes' => 'required|string',
             'components' => 'nullable|array',
@@ -286,17 +288,27 @@ class OrderController extends Controller
             ],
         ]);
 
-        $imagePath = null;
+        $imagePath = [];
 
         if ($request->hasFile('reference_image')) {
-            $imagePath = ImageOptimizerService::uploadAndOptimize($request->file('reference_image'), 'references');
+            $files = is_array($request->file('reference_image')) ? $request->file('reference_image') : [$request->file('reference_image')];
+            foreach ($files as $file) {
+                $imagePath[] = ImageOptimizerService::uploadAndOptimize($file, 'references');
+            }
         }
+        
+        $imagePath = count($imagePath) > 0 ? $imagePath : null;
 
-        $paymentProofPath = null;
+        $paymentProofPath = [];
 
         if ($request->hasFile('payment_proof')) {
-            $paymentProofPath = ImageOptimizerService::uploadAndOptimize($request->file('payment_proof'), 'payments');
+            $files = is_array($request->file('payment_proof')) ? $request->file('payment_proof') : [$request->file('payment_proof')];
+            foreach ($files as $file) {
+                $paymentProofPath[] = ImageOptimizerService::uploadAndOptimize($file, 'payments');
+            }
         }
+        
+        $paymentProofPath = count($paymentProofPath) > 0 ? $paymentProofPath : null;
 
         $prefix = $request->order_prefix;
 
@@ -556,7 +568,8 @@ class OrderController extends Controller
             'scheduled_at' => 'required|date',
             'product_name' => 'required|string|max:255',
             'total_price' => 'required|numeric|min:0',
-            'reference_image' => 'nullable|image|max:2048',
+            'reference_image' => 'nullable',
+            'reference_image.*' => 'image|max:2048',
             'greeting_card' => 'nullable|string',
             'notes' => 'required|string',
             'components' => 'nullable|array',
@@ -575,11 +588,16 @@ class OrderController extends Controller
             ],
         ]);
 
-        $imagePath = $order->reference_image;
+        $imagePath = is_array($order->reference_image) ? $order->reference_image : ($order->reference_image ? [$order->reference_image] : []);
 
         if ($request->hasFile('reference_image')) {
-            $imagePath = ImageOptimizerService::uploadAndOptimize($request->file('reference_image'), 'references');
+            $files = is_array($request->file('reference_image')) ? $request->file('reference_image') : [$request->file('reference_image')];
+            foreach ($files as $file) {
+                $imagePath[] = ImageOptimizerService::uploadAndOptimize($file, 'references');
+            }
         }
+        
+        $imagePath = count($imagePath) > 0 ? $imagePath : null;
 
         $deliveryFee = floatval($request->delivery_fee ?? 0);
         $totalAmount = floatval($request->total_price ?? 0) + $deliveryFee;

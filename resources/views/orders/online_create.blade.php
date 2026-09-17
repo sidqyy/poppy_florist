@@ -92,7 +92,8 @@
 
                         <div>
                             <label class="block text-sm font-bold text-gray-800 mb-1">Foto Referensi Desain</label>
-                            <input type="file" name="reference_image" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-florist-50 file:text-florist-700 hover:file:bg-florist-100 text-sm">
+                            <input type="file" name="reference_image[]" multiple accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-florist-50 file:text-florist-700 hover:file:bg-florist-100 text-sm">
+                            <p class="text-xs text-gray-500 mt-1">Bisa pilih lebih dari 1 foto sekaligus.</p>
                         </div>
                     </div>
 
@@ -253,7 +254,8 @@
 
                     <div>
                         <label class="block text-sm font-bold text-gray-800 mb-1">Upload Bukti Transfer</label>
-                        <input type="file" name="payment_proof" accept="image/*,.pdf" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 text-sm">
+                        <input type="file" name="payment_proof[]" multiple accept="image/*,.pdf" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Bisa pilih lebih dari 1 foto/dokumen sekaligus.</p>
                     </div>
                 </div>
 

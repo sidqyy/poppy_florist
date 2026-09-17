@@ -79,13 +79,21 @@
 
                         <div>
                             <label class="block text-sm font-bold text-gray-800 mb-1">Foto Referensi Desain</label>
-                            @if($order->reference_image)
+                            @if($order->reference_image && is_array($order->reference_image) && count($order->reference_image) > 0)
+                                <div class="mb-2 flex flex-wrap gap-2">
+                                    @foreach($order->reference_image as $img)
+                                        <a href="{{ asset('storage/'.$img) }}" target="_blank" class="text-blue-500 text-xs font-bold hover:underline flex items-center bg-blue-50 px-2 py-1 rounded">
+                                            <i class="fa-solid fa-image mr-1"></i> Foto {{ $loop->iteration }}
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @elseif($order->reference_image && !is_array($order->reference_image))
                                 <div class="mb-2">
                                     <a href="{{ asset('storage/'.$order->reference_image) }}" target="_blank" class="text-blue-500 text-xs font-bold hover:underline"><i class="fa-solid fa-image"></i> Lihat Foto Saat Ini</a>
                                 </div>
                             @endif
-                            <input type="file" name="reference_image" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-florist-50 file:text-florist-700 hover:file:bg-florist-100 text-sm">
-                            <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah foto referensi.</p>
+                            <input type="file" name="reference_image[]" multiple accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-florist-400 outline-none file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-florist-50 file:text-florist-700 hover:file:bg-florist-100 text-sm">
+                            <p class="text-xs text-gray-500 mt-1">Pilih foto jika ingin menambahkan foto referensi baru.</p>
                         </div>
                     </div>
 

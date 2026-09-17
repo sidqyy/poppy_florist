@@ -1,20 +1,26 @@
-self.addEventListener('push', function(event) {
-    const data = event.data.json();
-    const options = {
-        body: data.body || 'Ada pesanan baru!',
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: 'new-order',
-        requireInteraction: true
-    };
-    event.waitUntil(
-        self.registration.showNotification(data.title || 'Pesanan Masuk', options)
-    );
+const CACHE_NAME = 'poppy-florist-v1';
+const urlsToCache = [
+  '/',
+  '/manifest.json'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        return cache.addAll(urlsToCache);
+      })
+  );
 });
 
-self.addEventListener('notificationclick', function(event) {
-    event.notification.close();
-    event.waitUntil(
-        clients.openWindow('/kitchen')
-    );
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
+      })
+  );
 });

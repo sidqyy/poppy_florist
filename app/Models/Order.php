@@ -20,6 +20,8 @@ class Order extends Model
         'is_urgent' => 'boolean',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'reference_image' => 'array',
+        'payment_proof' => 'array',
     ];
 
     public function items()

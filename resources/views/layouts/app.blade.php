@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Poppy Florist System')</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('fav.ico') }}">
+    <!-- PWA Setup -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#10b981">
+    <link rel="apple-touch-icon" href="{{ asset('icons/icon-192.png') }}">
     <!-- Tailwind CSS (CDN for quick setup) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -105,6 +109,13 @@
     </div>
 
     <script src="{{ asset('js/offline-manager.js') }}"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const btn = document.getElementById('mobile-menu-btn');

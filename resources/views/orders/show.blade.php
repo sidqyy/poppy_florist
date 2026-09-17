@@ -96,7 +96,17 @@
                 @if($order->source == 'online')
                     <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
                         <div class="flex items-start gap-4">
-                            @if($order->reference_image)
+                            @if($order->reference_image && is_array($order->reference_image))
+                                <div class="flex flex-wrap gap-2 shrink-0">
+                                @foreach($order->reference_image as $img)
+                                    <div class="w-32 h-32 rounded-lg overflow-hidden bg-white border border-blue-200">
+                                        <a href="{{ asset('storage/'.$img) }}" target="_blank">
+                                            <img src="{{ asset('storage/'.$img) }}" class="w-full h-full object-cover">
+                                        </a>
+                                    </div>
+                                @endforeach
+                                </div>
+                            @elseif($order->reference_image)
                             <div class="w-32 h-32 rounded-lg overflow-hidden shrink-0 bg-white border border-blue-200">
                                 <a href="{{ asset('storage/'.$order->reference_image) }}" target="_blank">
                                     <img src="{{ asset('storage/'.$order->reference_image) }}" class="w-full h-full object-cover">
@@ -117,7 +127,15 @@
                                 </div>
                                 @endif
 
-                                @if($order->payment_proof)
+                                @if($order->payment_proof && is_array($order->payment_proof))
+                                    <div class="flex flex-wrap gap-2">
+                                    @foreach($order->payment_proof as $proof)
+                                        <a href="{{ asset('storage/'.$proof) }}" target="_blank" class="inline-flex items-center text-sm font-bold text-green-600 hover:text-green-700 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 transition-colors">
+                                            <i class="fa-solid fa-receipt mr-1"></i> Bukti {{ $loop->iteration }}
+                                        </a>
+                                    @endforeach
+                                    </div>
+                                @elseif($order->payment_proof)
                                 <div>
                                     <a href="{{ asset('storage/'.$order->payment_proof) }}" target="_blank" class="inline-flex items-center text-sm font-bold text-green-600 hover:text-green-700 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 transition-colors">
                                         <i class="fa-solid fa-receipt mr-2"></i> Lihat Bukti Pembayaran
@@ -216,7 +234,8 @@
                 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Upload Bukti Pembayaran <span id="proof_req_mark" class="text-red-500 hidden">*</span> <span id="proof_opt_mark" class="text-gray-400 text-xs">(Wajib untuk Transfer/QRIS)</span></label>
-                    <input type="file" name="proof_image" id="proof_image" accept="image/*" class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-florist-50 file:text-florist-700 hover:file:bg-florist-100">
+                    <input type="file" name="proof_image[]" multiple id="proof_image" accept="image/*" class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-florist-50 file:text-florist-700 hover:file:bg-florist-100">
+                    <p class="text-xs text-gray-500 mt-1">Bisa pilih lebih dari 1 foto sekaligus.</p>
                 </div>
 
                 <div class="mb-4">
@@ -321,14 +340,22 @@
                     </div>
 
                     <div class="flex items-center gap-3 shrink-0">
-                        @if($payment->proof_image)
+                        @if($payment->proof_image && is_array($payment->proof_image))
+                            <div class="flex gap-1 flex-wrap max-w-xs">
+                            @foreach($payment->proof_image as $proof)
+                                <a href="{{ asset('storage/'.$proof) }}" target="_blank" class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded text-sm font-medium transition-colors border border-blue-200">
+                                    <i class="fa-solid fa-image"></i> Bukti {{ $loop->iteration }}
+                                </a>
+                            @endforeach
+                            </div>
+                        @elseif($payment->proof_image)
                         <a href="{{ asset('storage/'.$payment->proof_image) }}" target="_blank" class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded text-sm font-medium transition-colors border border-blue-200">
                             <i class="fa-solid fa-image mr-1"></i> Lihat Bukti
                         </a>
                         @else
                         <form action="{{ route('payments.upload_proof', $payment->id) }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-1">
                             @csrf @method('PUT')
-                            <input type="file" name="proof_image" accept="image/*" required class="text-xs w-32 border border-gray-200 rounded file:mr-1 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-florist-50 file:text-florist-700 bg-white" title="Pilih foto bukti/struk susulan">
+                            <input type="file" name="proof_image[]" multiple accept="image/*" required class="text-xs w-32 border border-gray-200 rounded file:mr-1 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-florist-50 file:text-florist-700 bg-white" title="Pilih foto bukti/struk susulan">
                             <button type="submit" class="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow-sm text-xs transition-colors" title="Upload susulan">
                                 <i class="fa-solid fa-upload"></i>
                             </button>
