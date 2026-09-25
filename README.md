@@ -1,3 +1,5 @@
+git remote set-url origin https://github.com/Athallahsy/poppy_florist.git
+
 # Poppy Florist - Sistem Manajemen & POS Kasir
 
 Selamat datang di Sistem Manajemen & Point of Sale (POS) Toko Bunga Poppy Florist! Sistem ini dibangun khusus untuk menangani alur kerja end-to-end toko bunga modern, mulai dari penerimaan bahan baku, perangkaian bunga di dapur florist, pesanan online via WhatsApp/IG, hingga kasir berlayar sentuh untuk pelanggan yang datang langsung (walk-in).
