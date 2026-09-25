@@ -677,6 +677,7 @@ class PosController extends Controller
 
                             OrderItemComponent::create([
                                 'order_item_id' => $orderItem->id,
+                                'material_id' => $comp->material_id,
                                 'material_name' => $comp->material ? $comp->material->name : 'Bahan',
                                 'qty' => $qtyToDeduct,
                                 'unit_price' => $componentPrice,
@@ -700,6 +701,7 @@ class PosController extends Controller
 
                         OrderItemComponent::create([
                             'order_item_id' => $orderItem->id,
+                            'material_id' => $comp['material_id'] ?? null,
                             'material_name' => $comp['name'] ?? 'Bahan',
                             'qty' => $qtyToDeduct,
                             'unit_price' => $comp['unit_price'] ?? ($comp['price'] ?? 0),
@@ -718,6 +720,7 @@ class PosController extends Controller
 
                     OrderItemComponent::create([
                         'order_item_id' => $orderItem->id,
+                        'material_id' => $item['id'],
                         'material_name' => $item['name'],
                         'qty' => $qtyToDeduct,
                         'unit_price' => $item['price'],
@@ -733,6 +736,7 @@ class PosController extends Controller
 
                         OrderItemComponent::create([
                             'order_item_id' => $orderItem->id,
+                            'material_id' => $comp['material_id'] ?? null,
                             'material_name' => $comp['name'] ?? 'Bahan',
                             'qty' => $qtyToDeduct,
                             'unit_price' => $comp['unit_price'] ?? ($comp['price'] ?? 0),

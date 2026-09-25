@@ -179,6 +179,7 @@ class PosApiController extends Controller
 
                             OrderItemComponent::create([
                                 'order_item_id' => $orderItem->id,
+                                'material_id' => $comp->material_id,
                                 'material_name' => $comp->material ? $comp->material->name : 'Bahan',
                                 'qty' => $qtyToDeduct,
                                 'unit_price' => 0,
@@ -193,6 +194,7 @@ class PosApiController extends Controller
                     $mat = Material::find($materialId);
                     OrderItemComponent::create([
                         'order_item_id' => $orderItem->id,
+                        'material_id' => $materialId,
                         'material_name' => $mat ? $mat->name : 'Bahan Eceran',
                         'qty' => $qty,
                         'unit_price' => 0,
@@ -210,6 +212,7 @@ class PosApiController extends Controller
 
                         OrderItemComponent::create([
                             'order_item_id' => $orderItem->id,
+                            'material_id' => $materialId,
                             'material_name' => $comp['name'] ?? 'Bahan Custom',
                             'qty' => $compQty,
                             'unit_price' => 0,
