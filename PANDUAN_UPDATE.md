@@ -51,3 +51,5 @@ ALTER TABLE payments MODIFY proof_image TEXT NULL;
 
 ---
 Setelah file ditimpa dan database diperbarui, fitur upload banyak foto dan install web app sudah bisa dinikmati di PC toko Anda!
+
+php artisan tinker --execute="DB::statement('ALTER TABLE order_item_components AUTO_INCREMENT = ' . (DB::table('order_item_components')->max('id') + 1));"
